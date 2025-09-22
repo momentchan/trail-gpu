@@ -4,29 +4,33 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useControls } from "leva";
 
 export function Ribbon({
-    tex,
+    tex, // (time, x, y, z)
     N = 128,
-    baseWidth = 0.08
+    baseWidth = 0.08,
+    headRef,
+    validRef,
 }: {
     tex: THREE.DataTexture;
     N?: number;
     baseWidth?: number;
+    headRef?: React.RefObject<number>;
+    validRef?: React.RefObject<number>;
 }) {
 
-    const gemo = useMemo(() => {
-        const geometry = new THREE.BufferGeometry();
-        const idx = new Float32Array(N * 2);
-        const side = new Float32Array(N * 2);
+    const geometry = useMemo(() => {
+        const g = new THREE.BufferGeometry();
+        const aSeg = new Float32Array(N * 2);
+        const aSide = new Float32Array(N * 2);
 
         for (let i = 0; i < N; i++) {
-            idx[i * 2] = i;
-            idx[i * 2 + 1] = i;
-            side[i * 2] = -1;
-            side[i * 2 + 1] = 1;
+            aSeg[i * 2] = i;
+            aSeg[i * 2 + 1] = i;
+            aSide[i * 2] = -1;
+            aSide[i * 2 + 1] = 1;
         }
 
-        geometry.setAttribute("aSeg", new THREE.BufferAttribute(idx, 1));
-        geometry.setAttribute("aSide", new THREE.BufferAttribute(side, 1));
+        g.setAttribute("aSeg", new THREE.BufferAttribute(aSeg, 1));
+        g.setAttribute("aSide", new THREE.BufferAttribute(aSide, 1));
 
 
         const indices: number[] = [];
@@ -35,49 +39,71 @@ export function Ribbon({
             indices.push(a, b, c, b, d, c);  // two triangles
         }
 
-        geometry.setIndex(indices);
-
-        return geometry;
+        g.setIndex(indices);
+        return g;
     }, [N]);
 
-    const mat = useMemo(() => new THREE.ShaderMaterial({
+    const material = useMemo(() => new THREE.ShaderMaterial({
         uniforms: {
             uTex: { value: tex },
             uBaseWidth: { value: baseWidth },
             uCount: { value: N },
-            uColor: { value: new THREE.Color('#8ec5ff') },
+            uHead: { value: -1 },
+            uValid: { value: 0 },
             uCameraPos: { value: new THREE.Vector3() },
-            uHead: { value: 0 },
-            uDebug: { value: 0 }
+            uColor: { value: new THREE.Color('#8ec5ff') },
+            uDebug: { value: 0 },
         },
         vertexShader: /*glsl*/ `
         precision highp float;
         uniform sampler2D uTex;
         uniform float uBaseWidth;
         uniform int uCount;
+        uniform int uHead;
+        uniform int uValid;
         uniform vec3 uCameraPos;
 
         attribute float aSeg;
         attribute float aSide;
-        varying float vT;
-        varying float vSeg;
 
-        vec3 readPosition(int k){
+        varying float vSeg;
+        varying float vT;
+
+
+        // i -> k
+        int logicalToPhysical(int i){
+            // where the head is
+            int start = (uHead - uValid + 1 + uCount) % uCount;
+            return (start + i) % uCount;
+        }
+
+        vec4 readNode(int k){
             k = clamp(k, 0, uCount-1);
-            float u = (float(k)+0.5)/float(uCount);
-            vec4 px = texture2D(uTex, vec2(u, 0.5));
-            return px.xyz;
+            float u = (float(k) + 0.5) / float(uCount);
+            return texture2D(uTex, vec2(u, 0.5));
+        }
+
+        vec3 readPosByLogical(int i){
+            if(i<0) i=0;
+            if(i >= uValid){
+                return readNode(uHead).yzw;
+            }
+            int k = logicalToPhysical(i);
+            return readNode(k).yzw;
         }
         
         void main() {
             int i = int(aSeg);
-            vec3 p = readPosition(i);
 
-            vec3 pPrev = readPosition(i-1);
-            vec3 pNext = readPosition(i+1);
+            vec3 p = readPosByLogical(i);
+            vec3 pPrev = readPosByLogical(i-1);
+            vec3 pNext = readPosByLogical(i+1);
 
-            vec3 tangent = (i == 0) ? normalize(pNext - p)
-                         : (i == uCount-1) ? normalize(p - pPrev)
+            bool shortStrip = (uValid < 2);
+
+            vec3 tangent = shortStrip ? vec3(1.0, 0.0, 0.0)
+                         : (i<=0) ? normalize(pNext - p)
+                         : (i >= uCount-1) ? normalize(p - pPrev)
                          : normalize(pNext - pPrev);
 
             vec3 viewDir = normalize(uCameraPos - p);
@@ -86,31 +112,23 @@ export function Ribbon({
 
             float t = float(i) / float(uCount-1);
 
-            float width = uBaseWidth;// * (1.0 - t);
-
-
+            float width = uBaseWidth;
             vec3 pos = p + side * width * aSide;
 
-
-            vT = t;
-
-            vSeg = aSeg;
+            vSeg = float(i);
 
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
         }
         `,
         fragmentShader: /*glsl*/ `
         precision highp float;
-        uniform sampler2D uTex;
         uniform vec3 uColor;
         uniform int uDebug;
-        varying float vT;
         varying float vSeg;
         
         void main() {
             int i = int(vSeg);
 
-            float alpha = smoothstep(1.0, 0.0, vT);
 
             float s = i == uDebug? 1.0 : 0.0;
 
@@ -133,8 +151,11 @@ export function Ribbon({
     })
 
     useFrame(() => {
-        mat.uniforms.uCameraPos.value.copy(camera.position);
-        mat.uniforms.uDebug.value = control.debug;
+        material.uniforms.uCameraPos.value.copy(camera.position);
+        material.uniforms.uCount.value = tex.image.width
+        material.uniforms.uDebug.value = control.debug;
+        material.uniforms.uValid.value = validRef?.current ?? 0;
+        material.uniforms.uHead.value = headRef?.current ?? 0;
     });
-    return <mesh frustumCulled={false} geometry={gemo} material={mat} />;
+    return <mesh frustumCulled={false} geometry={geometry} material={material} />;
 }
