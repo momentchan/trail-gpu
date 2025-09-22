@@ -5,52 +5,26 @@ import { useTrailHistory } from "./useTrailHistory";
 import { Ribbon } from "./Ribbon";
 import { TrailDriver } from "./TrailDriver";
 import { DebugPoints } from "./DebugPoints";
+import { useUnityStyleTrails } from "./useUnityStyleTrails";
 
 export function ExampleScene() {
-    const { texture, capacity, head } = useTrailHistory(128);
+    const trails = useUnityStyleTrails({ life: 1, updateDistanceMin: 0.05 })
 
-
-    const points = useMemo(()=>{
-        const arr = new Float32Array(capacity * 3);
-        for (let i = 0; i < capacity; i++) {
-            arr[i * 3] = i * 0.1;
-            arr[i * 3 + 1] = 0;
-            arr[i * 3 + 2] = 0;
-        }
-        return arr;
-    }, [texture, capacity]);
-
-    useLayoutEffect(() => {
-        const data = texture.image.data as Float32Array;
-        for (let i = 0; i < capacity; i++) {
-            data[i * 4] = points[i * 3];
-            data[i * 4 + 1] = points[i * 3 + 1];
-            data[i * 4 + 2] = points[i * 3 + 2];
-            data[i * 4 + 3] = 1;
-        }
-        
-        texture.needsUpdate = true;
-    }, [texture, capacity]);
-    
+    const t = useRef(0)
+    useFrame((_, dt) => {
+      t.current += dt * 1.0
+      const R = 1.2
+      const p = new THREE.Vector3(
+        Math.cos(t.current) * R,
+        0.0,
+        Math.sin(t.current * 0.7) * 0.6
+      )
+      trails.writeInput(p)
+      trails.stepCalcInputCPU(performance.now() * 0.001) // time(秒)
+    })
 
     return <>
-        <Ribbon tex={texture} N={capacity} baseWidth={0.08} />
-        <TrailDriver tex={texture} />
-        <DebugPoints tex={texture} N={capacity} size={0.01} />
-        {/* <points>
-            <bufferGeometry>
-                <bufferAttribute 
-                attach="attributes-position" 
-                count={capacity}
-                array={points}
-                itemSize={3}
-                args={[points, 3]} />
-            </bufferGeometry>
-            <pointsMaterial color="#ffffff" size={0.01} />
-        </points> */}
-        {/* <mesh>
-            <sphereGeometry args={[0.4, 16, 16]} />
-            <meshStandardMaterial color="#ffffff" />
-        </mesh> */}
+        <Ribbon tex={trails.nodeTex} N={trails.nodeNumPerTrail} baseWidth={0.08} />
+        <DebugPoints tex={trails.nodeTex} N={trails.nodeNumPerTrail} size={0.01} />
     </>;
 }
