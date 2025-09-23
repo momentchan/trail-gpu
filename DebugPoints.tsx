@@ -42,9 +42,9 @@ export function DebugPoints({
         continue
       }
       const j = k * 4
+      positions[w++] = data[j + 0]
       positions[w++] = data[j + 1]
       positions[w++] = data[j + 2]
-      positions[w++] = data[j + 3]
     }
 
     // 把新座標寫回幾何

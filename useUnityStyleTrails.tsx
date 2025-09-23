@@ -108,10 +108,10 @@ export function useUnityStyleTrails(opts: UnityStyleTrailOptions = {}): UnitySty
         // Reset node texture
         const nodeData = nodeTex.image.data as Float32Array;
         for (let i = 0; i < nodeNumPerTrail; i++) {
-            nodeData[i * 4] = -1;     // time
-            nodeData[i * 4 + 1] = 0;  // x
-            nodeData[i * 4 + 2] = 0;  // y
-            nodeData[i * 4 + 3] = 0;  // z
+            nodeData[i * 4] = 0;     // x
+            nodeData[i * 4 + 1] = 0;  // y
+            nodeData[i * 4 + 2] = 0;  // z
+            nodeData[i * 4 + 3] = -1;  // time
         }
         nodeTex.needsUpdate = true;
     }, [trailTex, nodeTex, nodeNumPerTrail]);
@@ -121,10 +121,10 @@ export function useUnityStyleTrails(opts: UnityStyleTrailOptions = {}): UnitySty
         const nodeData = nodeTex.image.data as Float32Array;
         const index = headRef.current * 4;
         
-        nodeData[index] = time;
-        nodeData[index + 1] = position.x;
-        nodeData[index + 2] = position.y;
-        nodeData[index + 3] = position.z;
+        nodeData[index] = position.x;
+        nodeData[index + 1] = position.y;
+        nodeData[index + 2] = position.z;
+        nodeData[index + 3] = time;
         
         nodeTex.needsUpdate = true;
         

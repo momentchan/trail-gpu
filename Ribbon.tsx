@@ -86,10 +86,10 @@ export function Ribbon({
         vec3 readPosByLogical(int i){
             if(i<0) i=0;
             if(i >= uValid){
-                return readNode(uHead).yzw;
+                return readNode(uHead).xyz;
             }
             int k = logicalToPhysical(i);
-            return readNode(k).yzw;
+            return readNode(k).xyz;
         }
         
         void main() {
