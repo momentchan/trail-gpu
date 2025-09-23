@@ -1,14 +1,34 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { useTrailHistory } from "./useTrailHistory";
 import { Ribbon } from "./Ribbon";
-import { TrailDriver } from "./TrailDriver";
-import { DebugPoints } from "./DebugPoints";
-import { useUnityStyleTrails } from "./useUnityStyleTrails";
+import { GPUTrailsPass } from "./GPUTrailsPass";
+import calcInputHeadFrag from "./CalcInputHead.glsl?raw";
+import calcInputWriteNodeFrag from "./CalcInputWriteNode.glsl?raw";
 
 export function ExampleScene() {
-    const trails = useUnityStyleTrails({ life: 1, updateDistanceMin: 0.05 })
+    const { gl } = useThree()
+
+    const count = 60
+    const updateDistanceMin = 0.05
+
+    const initialNodeTex = useMemo(() => {
+        const data = new Float32Array(count * 4)
+        for (let i = 0; i < count; i++) data[i * 4 + 3] = -1
+
+        const tex = new THREE.DataTexture(data, count, 1, THREE.RGBAFormat, THREE.FloatType)
+        tex.needsUpdate = true
+        tex.minFilter = tex.magFilter = THREE.NearestFilter
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping
+        return tex
+    }, [count])
+
+
+    const trails = useMemo(() => new GPUTrailsPass(count, initialNodeTex, calcInputHeadFrag, calcInputWriteNodeFrag),
+        [count, initialNodeTex])
+
+
+    useEffect(() => trails.attachRenderer(gl), [gl, trails]);
 
     const t = useRef(0)
     useFrame((_, dt) => {
@@ -20,21 +40,15 @@ export function ExampleScene() {
             Math.sin(t.current * 0.7) * 0.6
         )
         trails.writeInput(p)
-        trails.stepCalcInputCPU(performance.now() * 0.001) // time(秒)
+        trails.stepCalcInput(gl, performance.now() * 0.001, updateDistanceMin) // time(秒)
     }, -1) // -1 makes the update position ahead of rendering
 
     return <>
         <Ribbon
-            tex={trails.nodeTex}
-            N={trails.nodeNumPerTrail}
+            NodeTex={trails.NodeTex}
+            TrailTex={trails.TrailTex}
+            count={trails.count}
             baseWidth={0.08}
-            headRef={trails.headRef}
-            validRef={trails.validRef} />
-        <DebugPoints
-            tex={trails.nodeTex}
-            N={trails.nodeNumPerTrail}
-            size={0.01}
-            headRef={trails.headRef}
-            validRef={trails.validRef} />
+        />
     </>;
 }
