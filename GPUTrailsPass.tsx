@@ -15,7 +15,7 @@ export class GPUTrailsPass {
 
 
     // (1x1) : (x,y,z,1)
-    inputTex: THREE.DataTexture;
+    inputRT: THREE.WebGLRenderTarget;
 
     matCalcInputHead: THREE.ShaderMaterial;
     matCalcInputWriteNode: THREE.ShaderMaterial;
@@ -52,10 +52,7 @@ export class GPUTrailsPass {
 
         // InputTex (0,0,0,1) -> headA/headB
         {
-            this.inputTex = new THREE.DataTexture(new Float32Array([0, 0, 0, 1]), 1, 1, THREE.RGBAFormat, THREE.FloatType);
-            this.inputTex.needsUpdate = true;
-            this.inputTex.magFilter = this.inputTex.minFilter = THREE.NearestFilter;
-            this.inputTex.wrapS = this.inputTex.wrapT = THREE.ClampToEdgeWrapping;
+            this.inputRT = new THREE.WebGLRenderTarget(1, 1, rtParams);
         }
 
         // initial TrailTex
@@ -79,7 +76,7 @@ export class GPUTrailsPass {
             uniforms: {
                 uTrailPrev: { value: null },
                 uNodePrev: { value: null },
-                uInputTex: { value: this.inputTex },
+                uInputTex: { value: this.inputRT.texture },
                 uTimeSec: { value: 0 },
                 uUpdateDistanceMin: { value: 0.05 },
                 uCount: { value: this.count },
@@ -98,7 +95,7 @@ export class GPUTrailsPass {
             uniforms: {
                 uNodePrev: { value: null },
                 uTrailNext: { value: null },
-                uInputTex: { value: this.inputTex },
+                uInputTex: { value: this.inputRT.texture },
                 uCount: { value: this.count },
             },
             vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
@@ -114,7 +111,7 @@ export class GPUTrailsPass {
         this.scene.add(this.quad);
     }
 
-    attachRenderer(renderer: THREE.WebGLRenderer){ (THREE as any).__renderer = renderer }
+    attachRenderer(renderer: THREE.WebGLRenderer) { (THREE as any).__renderer = renderer }
 
 
     private _blit(src: THREE.Texture, dst: THREE.WebGLRenderTarget) {
@@ -144,10 +141,30 @@ export class GPUTrailsPass {
 
     swap() { this._flip = !this._flip; }
 
-    writeInput(pos: THREE.Vector3) {
-        const d = this.inputTex.image.data as Float32Array;
-        d[0] = pos.x; d[1] = pos.y; d[2] = pos.z; d[3] = 1;
-        this.inputTex.needsUpdate = true;
+    // writeInput(pos: THREE.Vector3) {
+    //     const d = this.inputRT.image.data as Float32Array;
+    //     d[0] = pos.x; d[1] = pos.y; d[2] = pos.z; d[3] = 1;
+    //     this.inputRT.needsUpdate = true;
+    // }
+
+
+    writeInputFromTex(srcTex: THREE.Texture) {
+        const r = (THREE as any).__renderer as THREE.WebGLRenderer;
+        const old = r.getRenderTarget();
+
+        const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: srcTex }));
+        const scene = new THREE.Scene();
+        const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        scene.add(quad);
+
+        r.setRenderTarget(this.inputRT);
+        r.render(scene, cam);
+
+        r.setRenderTarget(old);
+
+        ; (quad.material as THREE.MeshBasicMaterial).map?.dispose();
+        quad.material.dispose();
+        quad.geometry.dispose();
     }
 
     stepCalcInput(renderer: THREE.WebGLRenderer, timeSec: number, updateDistanceMin: number) {
@@ -178,5 +195,5 @@ export class GPUTrailsPass {
 
     get NodeTex(): THREE.Texture { return this.nodePrevTex }
     get TrailTex(): THREE.Texture { return this.trailPrevTex }
-    get InputTex(): THREE.Texture { return this.inputTex }
+    get InputTex(): THREE.Texture { return this.inputRT.texture }
 }
