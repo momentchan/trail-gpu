@@ -2,8 +2,9 @@ import * as THREE from 'three';
 
 
 export class GPUTrailsPass {
-
-    readonly count: number;
+    
+    readonly nodes: number;
+    readonly trails: number;
 
     // (1x1) (head, valid, advance, time)
     trailA: THREE.WebGLRenderTarget;
@@ -26,13 +27,15 @@ export class GPUTrailsPass {
     _flip = true
 
     constructor(
-        count: number,
+        nodesPerTrail: number,
+        trailsNum: number,
         initNodeTex: THREE.DataTexture,
         calcInputHeadFrag: string,
         calcInputWriteNodeFrag: string
     ) {
 
-        this.count = count;
+        this.nodes = nodesPerTrail;
+        this.trails = trailsNum;
 
         const rtParams = {
             type: THREE.FloatType,
@@ -44,10 +47,10 @@ export class GPUTrailsPass {
             magFilter: THREE.NearestFilter,
             minFilter: THREE.NearestFilter,
         }
-        this.trailA = new THREE.WebGLRenderTarget(1, 1, rtParams);
-        this.trailB = new THREE.WebGLRenderTarget(1, 1, rtParams);
-        this.nodeA = new THREE.WebGLRenderTarget(count, 1, rtParams);
-        this.nodeB = new THREE.WebGLRenderTarget(count, 1, rtParams);
+        this.trailA = new THREE.WebGLRenderTarget(1, trailsNum, rtParams);
+        this.trailB = new THREE.WebGLRenderTarget(1, trailsNum, rtParams);
+        this.nodeA = new THREE.WebGLRenderTarget(nodesPerTrail, 1, rtParams);
+        this.nodeB = new THREE.WebGLRenderTarget(nodesPerTrail, 1, rtParams);
 
 
         // InputTex (0,0,0,1) -> headA/headB
@@ -79,7 +82,7 @@ export class GPUTrailsPass {
                 uInputTex: { value: this.inputRT.texture },
                 uTimeSec: { value: 0 },
                 uUpdateDistanceMin: { value: 0.05 },
-                uCount: { value: this.count },
+                uCount: { value: this.nodes },
             },
             vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
 
@@ -96,7 +99,7 @@ export class GPUTrailsPass {
                 uNodePrev: { value: null },
                 uTrailNext: { value: null },
                 uInputTex: { value: this.inputRT.texture },
-                uCount: { value: this.count },
+                uCount: { value: this.nodes },
             },
             vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
             fragmentShader: calcInputWriteNodeFrag,
