@@ -13,6 +13,10 @@ export function Ribbon({
   color = '#8ec5ff',
   wireframe = true,
   transparent = true,
+  // Custom shader props
+  customVertexShader,
+  customFragmentShader,
+  customUniforms = {},
 }: RibbonProps) {
   const { camera } = useThree();
 
@@ -23,16 +27,25 @@ export function Ribbon({
     // Create segment attributes
     const segmentArray = new Float32Array(nodes * 2);
     const sideArray = new Float32Array(nodes * 2);
+    const uvArray = new Float32Array(nodes * 4); // 2 UV coordinates per vertex
 
     for (let i = 0; i < nodes; i++) {
       segmentArray[i * 2] = i;      // First vertex of segment
       segmentArray[i * 2 + 1] = i;  // Second vertex of segment
       sideArray[i * 2] = -1;        // Left side
       sideArray[i * 2 + 1] = 1;     // Right side
+      
+      // UV coordinates: U along trail length (0 to 1), V across ribbon width (0 to 1)
+      const u = i / (nodes - 1); // Normalize along trail length
+      uvArray[i * 4] = u;        // Left vertex U
+      uvArray[i * 4 + 1] = 0.0;  // Left vertex V
+      uvArray[i * 4 + 2] = u;    // Right vertex U
+      uvArray[i * 4 + 3] = 1.0;  // Right vertex V
     }
 
     g.setAttribute('aSeg', new THREE.BufferAttribute(segmentArray, 1));
     g.setAttribute('aSide', new THREE.BufferAttribute(sideArray, 1));
+    g.setAttribute('uv', new THREE.BufferAttribute(uvArray, 2));
 
     // Create triangle indices
     const indices: number[] = [];
@@ -69,30 +82,46 @@ export function Ribbon({
   const material = useMemo(() => {
     const colorObj = new THREE.Color(color);
     
+    // Base uniforms that are always needed
+    const baseUniforms = {
+      uNodeTex: { value: nodeTex },
+      uTrailTex: { value: trailTex },
+      uBaseWidth: { value: baseWidth },
+      uNodes: { value: nodes },
+      uTrails: { value: trails },
+      uCameraPos: { value: new THREE.Vector3() },
+      uColor: { value: colorObj },
+      uTime: { value: 0 },
+      uDebug: { value: 0 },
+    };
+
+    // Merge base uniforms with custom uniforms
+    const uniforms = {
+      ...baseUniforms,
+      ...customUniforms,
+    };
+
+    // Use custom shaders or fallback to defaults
+    const vertexShader = customVertexShader || SHADER_CONSTANTS.RIBBON_VERTEX;
+    const fragmentShader = customFragmentShader || SHADER_CONSTANTS.RIBBON_FRAGMENT;
+    
     return new THREE.ShaderMaterial({
-      uniforms: {
-        uNodeTex: { value: nodeTex },
-        uTrailTex: { value: trailTex },
-        uBaseWidth: { value: baseWidth },
-        uNodes: { value: nodes },
-        uTrails: { value: trails },
-        uCameraPos: { value: new THREE.Vector3() },
-        uColor: { value: colorObj },
-        uDebug: { value: 0 },
-      },
-      vertexShader: SHADER_CONSTANTS.RIBBON_VERTEX,
-      fragmentShader: SHADER_CONSTANTS.RIBBON_FRAGMENT,
+      uniforms,
+      vertexShader,
+      fragmentShader,
       transparent,
       wireframe,
       depthWrite: false,
     });
-  }, [nodeTex, trailTex, baseWidth, nodes, trails, color, transparent, wireframe]);
+  }, [nodeTex, trailTex, baseWidth, nodes, trails, color, transparent, wireframe, 
+      customVertexShader, customFragmentShader, customUniforms]);
 
   // Update uniforms each frame
   const updateUniforms = useCallback(() => {
     material.uniforms.uCameraPos.value.copy(camera.position);
     material.uniforms.uNodes.value = nodes;
     material.uniforms.uTrails.value = trails;
+    material.uniforms.uTime.value = performance.now() * 0.001; // Convert to seconds
   }, [material, camera, nodes, trails]);
 
   useFrame(updateUniforms);

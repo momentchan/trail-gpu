@@ -11,6 +11,7 @@ uniform int uDebug;                  // Debug mode (highlights specific segments
 varying float vSeg;                  // Segment index
 varying float vTrail;                // Trail index
 varying float vSide;                 // Side of ribbon
+varying vec2 vUv;                    // UV coordinates
 
 void main() {
     int segment = int(vSeg);
@@ -25,5 +26,8 @@ void main() {
     float sideGradient = abs(vSide) * 0.1;
     color += vec3(sideGradient);
     
+    color.xy = vUv;
+    color.z = 0.0;
+
     gl_FragColor = vec4(color, 1.0);
 }

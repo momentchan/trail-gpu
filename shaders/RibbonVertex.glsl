@@ -21,6 +21,7 @@ varying float vSeg;                  // Segment index for fragment shader
 varying float vTrail;                // Trail index for fragment shader
 varying float vSide;                 // Side for fragment shader
 varying vec3 vWorldPos;              // World position for lighting
+varying vec2 vUv;                    // UV coordinates
 
 /**
  * Reads node data for a specific node and trail
@@ -105,6 +106,7 @@ void main() {
     vTrail = float(trail);
     vSide = aSide;
     vWorldPos = pos;
+    vUv = uv; // Pass UV coordinates
     
     // Transform to clip space
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);

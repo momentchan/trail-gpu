@@ -85,6 +85,10 @@ export interface RibbonProps {
   color?: string;
   wireframe?: boolean;
   transparent?: boolean;
+  // Custom shader props
+  customVertexShader?: string;
+  customFragmentShader?: string;
+  customUniforms?: { [key: string]: { value: any } };
 }
 
 export interface DebugPointsProps {
