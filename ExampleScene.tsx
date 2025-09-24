@@ -12,35 +12,22 @@ export function ExampleScene() {
     const { gl } = useThree()
 
     const nodesPerTrail = 60
-    const trailsNum = 1
+    const trailsNum = 100
     const updateDistanceMin = 0.05
 
-    const initialNodeTex = useMemo(() => {
-        const data = new Float32Array(nodesPerTrail * 4)
-        for (let i = 0; i < nodesPerTrail; i++) data[i * 4 + 3] = -1
-
-        const tex = new THREE.DataTexture(data, nodesPerTrail, 1, THREE.RGBAFormat, THREE.FloatType)
-        tex.needsUpdate = true
-        tex.minFilter = tex.magFilter = THREE.NearestFilter
-        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping
-        return tex
-    }, [nodesPerTrail])
-
-
     const trails = useMemo(() => {
-        const trails = new GPUTrailsPass(nodesPerTrail, trailsNum, initialNodeTex, calcInputHeadFrag, calcInputWriteNodeFrag);
+        const trails = new GPUTrailsPass(nodesPerTrail, trailsNum, calcInputHeadFrag, calcInputWriteNodeFrag);
         trails.attachRenderer(gl);
         return trails;
-    }, [nodesPerTrail, trailsNum, initialNodeTex, gl])
+    }, [nodesPerTrail, trailsNum, gl])
 
     const particles = useMemo(() => {
-        const particles = new GPUTrailParticles(1, updateParticlesFrag);
+        const particles = new GPUTrailParticles(trailsNum, updateParticlesFrag);
         particles.attachRenderer(gl);
         return particles;
-    }, [gl])
+    }, [gl, trailsNum])
 
 
-    const t = useRef(0)
     useFrame((state, dt) => {
         const timeSec = state.clock.getElapsedTime()
         particles.stepUpdate(gl, timeSec, dt)
@@ -52,7 +39,8 @@ export function ExampleScene() {
         <Ribbon
             NodeTex={trails.NodeTex}
             TrailTex={trails.TrailTex}
-            count={trails.nodes}
+            trails={trails.trails}
+            nodes={trails.nodes}
             baseWidth={0.08}
         />
     </>;

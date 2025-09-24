@@ -26,21 +26,22 @@ export class GPUTrailParticles {
         } as const;
 
 
-        this.partA = new THREE.WebGLRenderTarget(count, 1, rtParms);
-        this.partB = new THREE.WebGLRenderTarget(count, 1, rtParms);
+        this.partA = new THREE.WebGLRenderTarget(1, count, rtParms);
+        this.partB = new THREE.WebGLRenderTarget(1, count, rtParms);
 
         // init texture
         const data = initPositions ?? new Float32Array(count * 4);
+        const scale = 2;
         if (!initPositions) {
             for (let i = 0; i < count; i++) {
-                data[i * 4] = (Math.random() - 0.5) * 1;
-                data[i * 4 + 1] = (Math.random() - 0.5) * 1;
-                data[i * 4 + 2] = (Math.random() - 0.5) * 1;
+                data[i * 4] = (Math.random() - 0.5) * scale;
+                data[i * 4 + 1] = (Math.random() - 0.5) * scale;
+                data[i * 4 + 2] = (Math.random() - 0.5) * scale;
                 data[i * 4 + 3] = 1;
             }
         }
 
-        const initTex = new THREE.DataTexture(data, count, 1, THREE.RGBAFormat, THREE.FloatType);
+        const initTex = new THREE.DataTexture(data, 1, count, THREE.RGBAFormat, THREE.FloatType);
         initTex.needsUpdate = true;
         initTex.minFilter = initTex.magFilter = THREE.NearestFilter;
         initTex.wrapS = initTex.wrapT = THREE.ClampToEdgeWrapping;
