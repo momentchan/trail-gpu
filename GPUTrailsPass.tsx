@@ -1,205 +1,297 @@
 import * as THREE from 'three';
-
+import { 
+  TrailConfig, 
+  TrailUniforms, 
+  TrailGPUError,
+  DEFAULT_TRAIL_CONFIG 
+} from './types';
+import { 
+  createRenderTarget, 
+  createDataTexture, 
+  generateInitialTrailData,
+  generateInitialNodeData,
+  blitTexture,
+  createComputationScene,
+  disposeRenderTargets,
+  validateRenderer,
+  FULLSCREEN_VERTEX_SHADER
+} from './utils';
 
 export class GPUTrailsPass {
+  private readonly _nodes: number;
+  private readonly _trails: number;
+  private readonly _config: TrailConfig;
+  
+  // Trail data render targets (1x1 per trail: head, valid, advance, time)
+  private readonly _trailA: THREE.WebGLRenderTarget;
+  private readonly _trailB: THREE.WebGLRenderTarget;
+  
+  // Node data render targets (Nx1 per trail: x, y, z, time)
+  private readonly _nodeA: THREE.WebGLRenderTarget;
+  private readonly _nodeB: THREE.WebGLRenderTarget;
+  
+  // Input render target (1x1 per trail: x, y, z, 1)
+  private readonly _inputRT: THREE.WebGLRenderTarget;
+  
+  // Shader materials
+  private readonly _calcInputHeadMaterial: THREE.ShaderMaterial;
+  private readonly _calcInputWriteNodeMaterial: THREE.ShaderMaterial;
+  
+  // Computation scene
+  private readonly _scene: THREE.Scene;
+  private readonly _quad: THREE.Mesh;
+  private readonly _camera: THREE.OrthographicCamera;
+  
+  private _flip: boolean = true;
+  private _renderer: THREE.WebGLRenderer | null = null;
 
-    readonly nodes: number;
-    readonly trails: number;
+  constructor(
+    nodesPerTrail: number,
+    trailsNum: number,
+    calcInputHeadFragmentShader: string,
+    calcInputWriteNodeFragmentShader: string,
+    config: Partial<TrailConfig> = {}
+  ) {
+    this._nodes = nodesPerTrail;
+    this._trails = trailsNum;
+    this._config = { ...DEFAULT_TRAIL_CONFIG, ...config, nodesPerTrail, trailsNum };
 
-    // (1x1) (head, valid, advance, time)
-    trailA: THREE.WebGLRenderTarget;
-    trailB: THREE.WebGLRenderTarget;
+    // Create render targets
+    this._trailA = createRenderTarget(1, trailsNum);
+    this._trailB = createRenderTarget(1, trailsNum);
+    this._nodeA = createRenderTarget(nodesPerTrail, trailsNum);
+    this._nodeB = createRenderTarget(nodesPerTrail, trailsNum);
+    this._inputRT = createRenderTarget(1, trailsNum);
 
-    // (Nx1) (x, y, z, time)
-    nodeA: THREE.WebGLRenderTarget;
-    nodeB: THREE.WebGLRenderTarget;
+    // Data will be initialized when renderer is attached
 
+    // Create shader materials
+    this._calcInputHeadMaterial = this._createCalcInputHeadMaterial(calcInputHeadFragmentShader);
+    this._calcInputWriteNodeMaterial = this._createCalcInputWriteNodeMaterial(calcInputWriteNodeFragmentShader);
 
-    // (1x1) : (x,y,z,1)
-    inputRT: THREE.WebGLRenderTarget;
+    // Create computation scene
+    const { scene, quad, camera } = createComputationScene();
+    this._scene = scene;
+    this._quad = quad;
+    this._camera = camera;
+  }
 
-    matCalcInputHead: THREE.ShaderMaterial;
-    matCalcInputWriteNode: THREE.ShaderMaterial;
+  /**
+   * Attaches a renderer to the trails pass
+   */
+  attachRenderer(renderer: THREE.WebGLRenderer): void {
+    validateRenderer(renderer);
+    this._renderer = renderer;
+    
+    // Initialize trail data now that renderer is available
+    this._initializeTrailData();
+    this._initializeNodeData();
+  }
 
-    scene: THREE.Scene;
-    quad: THREE.Mesh;
-    cam: THREE.OrthographicCamera;
-    _flip = true
+  /**
+   * Gets the number of nodes per trail
+   */
+  get nodes(): number {
+    return this._nodes;
+  }
 
-    constructor(
-        nodesPerTrail: number,
-        trailsNum: number,
-        calcInputHeadFrag: string,
-        calcInputWriteNodeFrag: string
-    ) {
+  /**
+   * Gets the number of trails
+   */
+  get trails(): number {
+    return this._trails;
+  }
 
-        this.nodes = nodesPerTrail;
-        this.trails = trailsNum;
+  /**
+   * Gets the current configuration
+   */
+  get config(): Readonly<TrailConfig> {
+    return { ...this._config };
+  }
 
-        const rtParams = {
-            type: THREE.FloatType,
-            format: THREE.RGBAFormat,
-            depthBuffer: false,
-            stencilBuffer: false,
-            wrapS: THREE.ClampToEdgeWrapping,
-            wrapT: THREE.ClampToEdgeWrapping,
-            magFilter: THREE.NearestFilter,
-            minFilter: THREE.NearestFilter,
-        }
-        this.trailA = new THREE.WebGLRenderTarget(1, trailsNum, rtParams);
-        this.trailB = new THREE.WebGLRenderTarget(1, trailsNum, rtParams);
-        this.nodeA = new THREE.WebGLRenderTarget(nodesPerTrail, trailsNum, rtParams);
-        this.nodeB = new THREE.WebGLRenderTarget(nodesPerTrail, trailsNum, rtParams);
+  /**
+   * Gets the current node texture
+   */
+  get nodeTexture(): THREE.Texture {
+    return this._flip ? this._nodeA.texture : this._nodeB.texture;
+  }
 
-        // InputTex (0,0,0,1) -> headA/headB
-        this.inputRT = new THREE.WebGLRenderTarget(1, trailsNum, rtParams);
+  /**
+   * Gets the current trail texture
+   */
+  get trailTexture(): THREE.Texture {
+    return this._flip ? this._trailA.texture : this._trailB.texture;
+  }
 
-        // initial TrailTex
-        const trailInit = new Float32Array(trailsNum * 4);
-        for (let i = 0; i < trailsNum; i++) {
-            trailInit[i * 4 + 0] = -1;
-            trailInit[i * 4 + 1] = 0;
-            trailInit[i * 4 + 2] = 0;
-            trailInit[i * 4 + 3] = 0;
-        }
+  /**
+   * Gets the input texture
+   */
+  get inputTexture(): THREE.Texture {
+    return this._inputRT.texture;
+  }
 
-        const initTrailTex = new THREE.DataTexture(trailInit, 1, trailsNum, THREE.RGBAFormat, THREE.FloatType);
-        initTrailTex.needsUpdate = true;
-        this._blit(initTrailTex, this.trailA);
-        this._blit(initTrailTex, this.trailB);
-        initTrailTex.dispose();
-
-        // init NodeTex
-        const nodeInit = new Float32Array(nodesPerTrail * trailsNum * 4);
-        for (let t = 0; t < trailsNum; t++) {
-            for (let n = 0; n < nodesPerTrail; n++) {
-                nodeInit[(t * nodesPerTrail + n) * 4 + 3] = -1;
-            }
-        }
-        const initNodeTex = new THREE.DataTexture(nodeInit, nodesPerTrail, trailsNum, THREE.RGBAFormat, THREE.FloatType);
-        initNodeTex.needsUpdate = true;
-        this._blit(initNodeTex, this.nodeA);
-        this._blit(initNodeTex, this.nodeB);
-        initNodeTex.dispose();
-
-        // Pass: calcInputHead
-        this.matCalcInputHead = new THREE.ShaderMaterial({
-            uniforms: {
-                uTrailPrev: { value: null },
-                uNodePrev: { value: null },
-                uInputTex: { value: this.inputRT.texture },
-                uTimeSec: { value: 0 },
-                uUpdateDistanceMin: { value: 0.05 },
-                uNodes: { value: this.nodes },
-                uTrails: { value: this.trails },
-            },
-            vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
-
-            fragmentShader: calcInputHeadFrag,
-            depthTest: false,
-            depthWrite: false,
-        })
-
-
-
-        // Pass: calcInputWriteNode
-        this.matCalcInputWriteNode = new THREE.ShaderMaterial({
-            uniforms: {
-                uNodePrev: { value: null },
-                uTrailNext: { value: null },
-                uInputTex: { value: this.inputRT.texture },
-                uNodes: { value: this.nodes },
-                uTrails: { value: this.trails },
-            },
-            vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
-            fragmentShader: calcInputWriteNodeFrag,
-            depthTest: false,
-            depthWrite: false,
-        })
-
-        this.scene = new THREE.Scene();
-        this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: this.trailA.texture }));
-        this.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-        this.scene.add(this.quad);
+  /**
+   * Writes input data from a source texture
+   */
+  writeInputFromTexture(sourceTexture: THREE.Texture): void {
+    if (!this._renderer) {
+      throw new TrailGPUError('Renderer not attached. Call attachRenderer() first.');
     }
 
-    attachRenderer(renderer: THREE.WebGLRenderer) { (THREE as any).__renderer = renderer }
+    const oldRenderTarget = this._renderer.getRenderTarget();
+    const quad = new THREE.Mesh(
+      new THREE.PlaneGeometry(2, 2),
+      new THREE.MeshBasicMaterial({ map: sourceTexture })
+    );
+    const scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    scene.add(quad);
 
+    this._renderer.setRenderTarget(this._inputRT);
+    this._renderer.render(scene, camera);
+    this._renderer.setRenderTarget(oldRenderTarget);
 
-    private _blit(src: THREE.Texture, dst: THREE.WebGLRenderTarget) {
-        const r = (THREE as any).__renderer as THREE.WebGLRenderer;
+    // Cleanup
+    (quad.material as THREE.MeshBasicMaterial).map?.dispose();
+    quad.material.dispose();
+    quad.geometry.dispose();
+  }
 
-        if (!r) {
-            console.warn('Call attachRenderer(renderer) before blitting.')
-            return
-        }
-        
-        const old = r.getRenderTarget();
-        const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: src }));
-        const scene = new THREE.Scene();
-        const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-        scene.add(quad);
-        r.setRenderTarget(dst); r.clear(); r.render(scene, cam);
-        r.setRenderTarget(old);
-        (quad.material as THREE.MeshBasicMaterial).map?.dispose();
-        quad.material.dispose();
-        quad.geometry.dispose();
+  /**
+   * Performs one step of trail calculation
+   */
+  stepCalcInput(timeSec: number, updateDistanceMin?: number): void {
+    if (!this._renderer) {
+      throw new TrailGPUError('Renderer not attached. Call attachRenderer() first.');
     }
 
+    const distance = updateDistanceMin ?? this._config.updateDistanceMin;
+    const oldRenderTarget = this._renderer.getRenderTarget();
 
-    get trailPrevTex(): THREE.Texture { return (this._flip ? this.trailA : this.trailB).texture }
-    get trailNextRT(): THREE.WebGLRenderTarget { return (this._flip ? this.trailB : this.trailA) }
+    // Pass 1: Calculate input head -> Trail texture (next)
+    this._updateCalcInputHeadUniforms(timeSec, distance);
+    this._quad.material = this._calcInputHeadMaterial;
+    this._renderer.setRenderTarget(this._trailNextRenderTarget);
+    this._renderer.render(this._scene, this._camera);
 
-    get nodePrevTex(): THREE.Texture { return (this._flip ? this.nodeA : this.nodeB).texture }
-    get nodeNextRT(): THREE.WebGLRenderTarget { return (this._flip ? this.nodeB : this.nodeA) }
+    // Pass 2: Calculate input write node -> Node texture (next)
+    this._updateCalcInputWriteNodeUniforms();
+    this._quad.material = this._calcInputWriteNodeMaterial;
+    this._renderer.setRenderTarget(this._nodeNextRenderTarget);
+    this._renderer.render(this._scene, this._camera);
 
-    swap() { this._flip = !this._flip; }
+    this._renderer.setRenderTarget(oldRenderTarget);
+    this._flip = !this._flip;
+  }
 
+  /**
+   * Updates trail configuration
+   */
+  updateConfig(newConfig: Partial<TrailConfig>): void {
+    Object.assign(this._config, newConfig);
+  }
 
-    writeInputFromTex(srcTex: THREE.Texture) {
-        const r = (THREE as any).__renderer as THREE.WebGLRenderer;
-        const old = r.getRenderTarget();
-        const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshBasicMaterial({ map: srcTex }));
-        const scene = new THREE.Scene();
-        const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-        scene.add(quad);
+  /**
+   * Disposes of all resources
+   */
+  dispose(): void {
+    this._calcInputHeadMaterial.dispose();
+    this._calcInputWriteNodeMaterial.dispose();
+    disposeRenderTargets([
+      this._trailA, 
+      this._trailB, 
+      this._nodeA, 
+      this._nodeB, 
+      this._inputRT
+    ]);
+    this._scene.clear();
+  }
 
-
-        r.setRenderTarget(this.inputRT);
-        r.render(scene, cam);
-        r.setRenderTarget(old);
-        (quad.material as THREE.MeshBasicMaterial).map?.dispose();
-        quad.material.dispose();
-        quad.geometry.dispose();
+  private _initializeTrailData(): void {
+    const trailData = generateInitialTrailData(this._trails);
+    const initTrailTexture = createDataTexture(trailData, 1, this._trails);
+    
+    if (this._renderer) {
+      blitTexture(this._renderer, initTrailTexture, this._trailA);
+      blitTexture(this._renderer, initTrailTexture, this._trailB);
     }
+    
+    initTrailTexture.dispose();
+  }
 
-    stepCalcInput(renderer: THREE.WebGLRenderer, timeSec: number, updateDistanceMin: number) {
-        // Pass1: CalcInputHead -> TraiTex(next)
-        this.matCalcInputHead.uniforms.uTrailPrev.value = this.trailPrevTex;
-        this.matCalcInputHead.uniforms.uNodePrev.value = this.nodePrevTex;
-        this.matCalcInputHead.uniforms.uTimeSec.value = timeSec;
-        this.matCalcInputHead.uniforms.uUpdateDistanceMin.value = updateDistanceMin;
-
-        const old = renderer.getRenderTarget();
-
-        this.quad.material = this.matCalcInputHead;
-        renderer.setRenderTarget(this.trailNextRT);
-        renderer.render(this.scene, this.cam);
-
-
-        // Pass2: CalcInputWriteNode -> NodeTex(next)
-        this.matCalcInputWriteNode.uniforms.uNodePrev.value = this.nodePrevTex;
-        this.matCalcInputWriteNode.uniforms.uTrailNext.value = this.trailNextRT.texture;
-
-        this.quad.material = this.matCalcInputWriteNode;
-        renderer.setRenderTarget(this.nodeNextRT);
-        renderer.render(this.scene, this.cam);
-
-        renderer.setRenderTarget(old);
-        this.swap();
+  private _initializeNodeData(): void {
+    const nodeData = generateInitialNodeData(this._nodes, this._trails);
+    const initNodeTexture = createDataTexture(nodeData, this._nodes, this._trails);
+    
+    if (this._renderer) {
+      blitTexture(this._renderer, initNodeTexture, this._nodeA);
+      blitTexture(this._renderer, initNodeTexture, this._nodeB);
     }
+    
+    initNodeTexture.dispose();
+  }
 
-    get NodeTex(): THREE.Texture { return this.nodePrevTex }
-    get TrailTex(): THREE.Texture { return this.trailPrevTex }
-    get InputTex(): THREE.Texture { return this.inputRT.texture }
+  private _createCalcInputHeadMaterial(fragmentShader: string): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uTrailPrev: { value: null },
+        uNodePrev: { value: null },
+        uInputTex: { value: this._inputRT.texture },
+        uTimeSec: { value: 0 },
+        uUpdateDistanceMin: { value: this._config.updateDistanceMin },
+        uNodes: { value: this._nodes },
+        uTrails: { value: this._trails },
+      },
+      vertexShader: FULLSCREEN_VERTEX_SHADER,
+      fragmentShader,
+      depthTest: false,
+      depthWrite: false,
+    });
+  }
+
+  private _createCalcInputWriteNodeMaterial(fragmentShader: string): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uNodePrev: { value: null },
+        uTrailNext: { value: null },
+        uInputTex: { value: this._inputRT.texture },
+        uNodes: { value: this._nodes },
+        uTrails: { value: this._trails },
+      },
+      vertexShader: FULLSCREEN_VERTEX_SHADER,
+      fragmentShader,
+      depthTest: false,
+      depthWrite: false,
+    });
+  }
+
+  private _updateCalcInputHeadUniforms(timeSec: number, updateDistanceMin: number): void {
+    const uniforms = this._calcInputHeadMaterial.uniforms;
+    uniforms.uTrailPrev.value = this._trailPrevTexture;
+    uniforms.uNodePrev.value = this._nodePrevTexture;
+    uniforms.uTimeSec.value = timeSec;
+    uniforms.uUpdateDistanceMin.value = updateDistanceMin;
+  }
+
+  private _updateCalcInputWriteNodeUniforms(): void {
+    const uniforms = this._calcInputWriteNodeMaterial.uniforms;
+    uniforms.uNodePrev.value = this._nodePrevTexture;
+    uniforms.uTrailNext.value = this._trailNextRenderTarget.texture;
+  }
+
+  private get _trailPrevTexture(): THREE.Texture {
+    return this._flip ? this._trailA.texture : this._trailB.texture;
+  }
+
+  private get _trailNextRenderTarget(): THREE.WebGLRenderTarget {
+    return this._flip ? this._trailB : this._trailA;
+  }
+
+  private get _nodePrevTexture(): THREE.Texture {
+    return this._flip ? this._nodeA.texture : this._nodeB.texture;
+  }
+
+  private get _nodeNextRenderTarget(): THREE.WebGLRenderTarget {
+    return this._flip ? this._nodeB : this._nodeA;
+  }
 }

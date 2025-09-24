@@ -1,107 +1,174 @@
-import * as THREE from "three";
+import * as THREE from 'three';
+import { 
+  ParticleConfig, 
+  ParticleUniforms, 
+  TrailGPUError,
+  DEFAULT_PARTICLE_CONFIG 
+} from './types';
+import { 
+  createRenderTarget, 
+  createDataTexture, 
+  generateRandomParticlePositions,
+  blitTexture,
+  createComputationScene,
+  disposeRenderTargets,
+  validateRenderer,
+  FULLSCREEN_VERTEX_SHADER
+} from './utils';
 
 export class GPUTrailParticles {
-    readonly count: number;
-    partA: THREE.WebGLRenderTarget;
-    partB: THREE.WebGLRenderTarget;
-    matUpdate: THREE.ShaderMaterial;
+  private readonly _count: number;
+  private readonly _config: ParticleConfig;
+  private readonly _partA: THREE.WebGLRenderTarget;
+  private readonly _partB: THREE.WebGLRenderTarget;
+  private readonly _material: THREE.ShaderMaterial;
+  private readonly _scene: THREE.Scene;
+  private readonly _quad: THREE.Mesh;
+  private readonly _camera: THREE.OrthographicCamera;
+  private _flip: boolean = true;
+  private _renderer: THREE.WebGLRenderer | null = null;
+  private _initialPositions?: Float32Array;
 
-    scene = new THREE.Scene();
-    quad: THREE.Mesh;
-    cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    _flip = true;
+  constructor(
+    count: number, 
+    updateFragmentShader: string, 
+    config: Partial<ParticleConfig> = {},
+    initialPositions?: Float32Array
+  ) {
+    this._count = count;
+    this._config = { ...DEFAULT_PARTICLE_CONFIG, ...config, count };
 
-    constructor(count: number, updateFrag: string, initPositions?: Float32Array) {
-        this.count = count;
+    // Create render targets
+    this._partA = createRenderTarget(1, count);
+    this._partB = createRenderTarget(1, count);
 
-        const rtParms = {
-            type: THREE.FloatType,
-            format: THREE.RGBAFormat,
-            minFilter: THREE.NearestFilter,
-            magFilter: THREE.NearestFilter,
-            wrapS: THREE.ClampToEdgeWrapping,
-            wrapT: THREE.ClampToEdgeWrapping,
-            depthBuffer: false,
-            stencilBuffer: false,
-        } as const;
+    // Store initial positions for later initialization
+    this._initialPositions = initialPositions;
 
+    // Create update material
+    this._material = this._createUpdateMaterial(updateFragmentShader);
 
-        this.partA = new THREE.WebGLRenderTarget(1, count, rtParms);
-        this.partB = new THREE.WebGLRenderTarget(1, count, rtParms);
+    // Create computation scene
+    const { scene, quad, camera } = createComputationScene();
+    this._scene = scene;
+    this._quad = quad;
+    this._camera = camera;
+    
+    this._quad.material = this._material;
+  }
 
-        // init texture
-        const data = initPositions ?? new Float32Array(count * 4);
-        const scale = 2;
-        if (!initPositions) {
-            for (let i = 0; i < count; i++) {
-                data[i * 4] = (Math.random() - 0.5) * scale;
-                data[i * 4 + 1] = (Math.random() - 0.5) * scale;
-                data[i * 4 + 2] = (Math.random() - 0.5) * scale;
-                data[i * 4 + 3] = 1;
-            }
-        }
+  /**
+   * Attaches a renderer to the particle system
+   */
+  attachRenderer(renderer: THREE.WebGLRenderer): void {
+    validateRenderer(renderer);
+    this._renderer = renderer;
+    
+    // Initialize particle data now that renderer is available
+    this._initializeParticleData();
+  }
 
-        const initTex = new THREE.DataTexture(data, 1, count, THREE.RGBAFormat, THREE.FloatType);
-        initTex.needsUpdate = true;
-        initTex.minFilter = initTex.magFilter = THREE.NearestFilter;
-        initTex.wrapS = initTex.wrapT = THREE.ClampToEdgeWrapping;
+  /**
+   * Gets the current particles texture
+   */
+  get particlesTexture(): THREE.Texture {
+    return this._flip ? this._partA.texture : this._partB.texture;
+  }
 
-        this._blit(initTex, this.partA);
-        this._blit(initTex, this.partB);
-        initTex.dispose();
+  /**
+   * Gets the particle count
+   */
+  get count(): number {
+    return this._count;
+  }
 
-        this.matUpdate = new THREE.ShaderMaterial({
-            uniforms: {
-                uParticlesPrev: { value: null },
-                uTimeSec: { value: 0 },
-                uDeltaTime: { value: 0.016 },
-                uSpeed: { value: 0.6 },
-                uNoiseScale: { value: 0.8 },
-                uTimeScale: { value: 0.3 },
-                uParticleCount: { value: count },
-            },
-            vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.,1.); }`,
-            fragmentShader: updateFrag,
-            depthTest: false,
-            depthWrite: false,
-        })
+  /**
+   * Gets the current configuration
+   */
+  get config(): Readonly<ParticleConfig> {
+    return { ...this._config };
+  }
 
-        this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.matUpdate);
-        this.scene.add(this.quad);
-
+  /**
+   * Updates particle positions using GPU computation
+   */
+  stepUpdate(timeSec: number, deltaTime: number): void {
+    if (!this._renderer) {
+      throw new TrailGPUError('Renderer not attached. Call attachRenderer() first.');
     }
 
-    attachRenderer(renderer: THREE.WebGLRenderer) { (THREE as any).__renderer = renderer }
+    // Update uniforms
+    this._updateUniforms(timeSec, deltaTime);
 
-    private _blit(src: THREE.Texture, dst: THREE.WebGLRenderTarget) {
-        const r = (THREE as any).__renderer as THREE.WebGLRenderer
-        const old = r.getRenderTarget()
-        const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2),
-            new THREE.MeshBasicMaterial({ map: src }))
-        const scene = new THREE.Scene()
-        const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
-        scene.add(quad)
-        r.setRenderTarget(dst); r.clear(); r.render(scene, cam)
-        r.setRenderTarget(old)
-            ; (quad.material as THREE.MeshBasicMaterial).map?.dispose()
-        quad.material.dispose(); quad.geometry.dispose()
+    // Perform GPU computation
+    const oldRenderTarget = this._renderer.getRenderTarget();
+    this._renderer.setRenderTarget(this._writeRenderTarget);
+    this._renderer.render(this._scene, this._camera);
+    this._renderer.setRenderTarget(oldRenderTarget);
+
+    // Swap buffers
+    this._flip = !this._flip;
+  }
+
+  /**
+   * Updates particle configuration
+   */
+  updateConfig(newConfig: Partial<ParticleConfig>): void {
+    Object.assign(this._config, newConfig);
+    this._updateUniforms(0, 0.016); // Update uniforms with current values
+  }
+
+  /**
+   * Disposes of all resources
+   */
+  dispose(): void {
+    this._material.dispose();
+    disposeRenderTargets([this._partA, this._partB]);
+    this._scene.clear();
+  }
+
+  private _initializeParticleData(): void {
+    const data = this._initialPositions ?? generateRandomParticlePositions(this._count);
+    const initTexture = createDataTexture(data, 1, this._count);
+    
+    // Initialize both render targets
+    if (this._renderer) {
+      blitTexture(this._renderer, initTexture, this._partA);
+      blitTexture(this._renderer, initTexture, this._partB);
     }
+    
+    initTexture.dispose();
+  }
 
-    get ParticlesTex(): THREE.Texture { return this._flip ? this.partA.texture : this.partB.texture }
-    get _WriteRT(): THREE.WebGLRenderTarget { return this._flip ? this.partB : this.partA }
-    _swap() { this._flip = !this._flip; }
+  private _createUpdateMaterial(fragmentShader: string): THREE.ShaderMaterial {
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uParticlesPrev: { value: null },
+        uTimeSec: { value: 0 },
+        uDeltaTime: { value: 0.016 },
+        uSpeed: { value: this._config.speed },
+        uNoiseScale: { value: this._config.noiseScale },
+        uTimeScale: { value: this._config.timeScale },
+        uParticleCount: { value: this._count },
+      },
+      vertexShader: FULLSCREEN_VERTEX_SHADER,
+      fragmentShader,
+      depthTest: false,
+      depthWrite: false,
+    });
+  }
 
-    stepUpdate(renderer: THREE.WebGLRenderer, timeSec: number, deltaTime: number) {
-        this.matUpdate.uniforms.uParticlesPrev.value = this.ParticlesTex;
-        this.matUpdate.uniforms.uTimeSec.value = timeSec;
-        this.matUpdate.uniforms.uDeltaTime.value = deltaTime;
+  private _updateUniforms(timeSec: number, deltaTime: number): void {
+    const uniforms = this._material.uniforms;
+    uniforms.uParticlesPrev.value = this.particlesTexture;
+    uniforms.uTimeSec.value = timeSec;
+    uniforms.uDeltaTime.value = deltaTime;
+    uniforms.uSpeed.value = this._config.speed;
+    uniforms.uNoiseScale.value = this._config.noiseScale;
+    uniforms.uTimeScale.value = this._config.timeScale;
+  }
 
-
-        const old = renderer.getRenderTarget();
-        renderer.setRenderTarget(this._WriteRT);
-        renderer.render(this.scene, this.cam);
-        renderer.setRenderTarget(old);
-
-        this._swap();
-    }
+  private get _writeRenderTarget(): THREE.WebGLRenderTarget {
+    return this._flip ? this._partB : this._partA;
+  }
 }
