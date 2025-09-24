@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { useMemo, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { useControls } from 'leva';
 import { RibbonProps } from './types';
 import { SHADER_CONSTANTS } from './shaders';
 
@@ -55,8 +54,9 @@ export function Ribbon({
       trailArray[t] = t;
     }
     g.setAttribute('aTrail', new THREE.InstancedBufferAttribute(trailArray, 1));
+    
     g.instanceCount = trails;
-
+    
     // Set large bounding sphere to avoid culling issues
     g.computeBoundingSphere = () => {
       g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
@@ -88,24 +88,12 @@ export function Ribbon({
     });
   }, [nodeTex, trailTex, baseWidth, nodes, trails, color, transparent, wireframe]);
 
-  // Debug controls
-  const controls = useControls('Ribbon Debug', {
-    debug: { value: 0, min: 0, max: nodes, step: 1 },
-    baseWidth: { value: baseWidth, min: 0.01, max: 0.5, step: 0.01 },
-    color: { value: color },
-    wireframe: { value: wireframe },
-  });
-
   // Update uniforms each frame
   const updateUniforms = useCallback(() => {
     material.uniforms.uCameraPos.value.copy(camera.position);
     material.uniforms.uNodes.value = nodes;
     material.uniforms.uTrails.value = trails;
-    material.uniforms.uDebug.value = controls.debug;
-    material.uniforms.uBaseWidth.value = controls.baseWidth;
-    material.uniforms.uColor.value.set(controls.color);
-    material.wireframe = controls.wireframe;
-  }, [material, camera, nodes, trails, controls]);
+  }, [material, camera, nodes, trails]);
 
   useFrame(updateUniforms);
 

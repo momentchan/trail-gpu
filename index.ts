@@ -7,14 +7,18 @@ export { GPUTrailsPass } from './GPUTrailsPass';
 
 // React Components
 export { Ribbon } from './Ribbon';
-export { DebugPoints } from './DebugPoints';
 export { ParticleDebugPoints } from './ParticleDebugPoints';
 
 // Hooks
-export { useTrailSystem, useTrailSystemWithFrame } from './hooks/useTrailSystem';
+export { useTrails } from './hooks/useTrails';
+export { useParticles } from './hooks/useParticles';
+export { useFlowFieldParticles } from './hooks/useFlowFieldParticles';
+export { useOrbitalParticles } from './hooks/useOrbitalParticles';
+export { useTrailsWithParticles } from './hooks/useTrailsWithParticles';
 
 // Example Scenes
-export { ExampleScene, ManualExampleScene } from './ExampleScene';
+export { FlowFieldExample } from './examples/FlowFieldExample';
+export { OrbitalExample } from './examples/OrbitalExample';
 
 // Types and Interfaces
 export type {
@@ -66,6 +70,10 @@ export {
   ribbonFragmentShader,
   SHADER_CONSTANTS,
 } from './shaders';
+
+// Particle Systems
+export { FlowFieldParticles } from './particles/FlowFieldParticles';
+export { OrbitalParticles } from './particles/OrbitalParticles';
 
 // Re-export commonly used Three.js types for convenience
 export type { Texture, WebGLRenderTarget, ShaderMaterial } from 'three';
