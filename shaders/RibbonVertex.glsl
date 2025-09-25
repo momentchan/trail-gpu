@@ -96,7 +96,9 @@ void main() {
     // Calculate billboard orientation
     vec3 viewDir = normalize(uCameraPos - p);
     vec3 side = normalize(cross(tangent, viewDir));
-    
+
+    vec3 normal = normalize(cross(side, tangent));
+
     // Calculate final position
     float width = uBaseWidth;
     vec3 pos = p + side * width * aSide;
@@ -107,7 +109,14 @@ void main() {
     vSide = aSide;
     vWorldPos = pos;
     vUv = uv; // Pass UV coordinates
-    
-    // Transform to clip space
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+
+
+    mat4 invModel = inverse(modelMatrix);
+    mat3 invModel3 = mat3(invModel);
+
+    vec3 posOS    = (invModel * vec4(pos, 1.0)).xyz;
+    vec3 normalOS = normalize(transpose(invModel3) * normal);
+
+    csm_Position = posOS;
+    csm_Normal   = normalOS;
 }

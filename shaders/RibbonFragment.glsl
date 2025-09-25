@@ -22,12 +22,5 @@ void main() {
     // Mix base color with debug color
     vec3 color = mix(uColor, vec3(1.0, 0.0, 0.0), debugHighlight);
     
-    // Add subtle gradient based on side
-    float sideGradient = abs(vSide) * 0.1;
-    color += vec3(sideGradient);
-    
-    color.xy = vUv;
-    color.z = 0.0;
-
-    gl_FragColor = vec4(color, 1.0);
+    csm_DiffuseColor = vec4(color, 1.0);
 }
