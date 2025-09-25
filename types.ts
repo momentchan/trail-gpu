@@ -83,8 +83,8 @@ export interface RibbonProps {
   trails: number;
   baseWidth?: number;
   color?: string;
-  wireframe?: boolean;
-  transparent?: boolean;
+  // Flexible material properties - pass any Three.js material props
+  materialProps?: Partial<THREE.MeshStandardMaterialParameters>;
   // Custom shader props
   customVertexShader?: string;
   customFragmentShader?: string;

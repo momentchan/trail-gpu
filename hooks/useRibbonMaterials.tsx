@@ -11,8 +11,7 @@ export interface UseRibbonMaterialsOptions {
   nodes: number;
   trails: number;
   color: string;
-  wireframe: boolean;
-  transparent: boolean;
+  materialProps?: Partial<THREE.MeshStandardMaterialParameters>;
   customVertexShader?: string;
   customFragmentShader?: string;
   customUniforms?: { [key: string]: { value: any } };
@@ -34,8 +33,7 @@ export function useRibbonMaterials({
   nodes,
   trails,
   color,
-  wireframe,
-  transparent,
+  materialProps = {},
   customVertexShader,
   customFragmentShader,
   customUniforms = {},
@@ -80,23 +78,24 @@ export function useRibbonMaterials({
     // Use custom shaders or fallback to defaults
     const vertexShader = customVertexShader || SHADER_CONSTANTS.RIBBON_VERTEX;
     const fragmentShader = customFragmentShader || SHADER_CONSTANTS.RIBBON_FRAGMENT;
+    // Create base material with flexible properties
+    const baseMaterial = new THREE.MeshStandardMaterial({
+      ...materialProps, 
+    });
 
     return new CustomShaderMaterial({
-      baseMaterial: THREE.MeshStandardMaterial,
+      baseMaterial,
       uniforms,
       vertexShader,
       fragmentShader,
-      transparent,
-      wireframe,
-      side: THREE.DoubleSide,
     });
   }, [
     baseUniforms, 
     customUniforms, 
     customVertexShader, 
     customFragmentShader, 
-    wireframe,
-    transparent
+    color,
+    materialProps
   ]);
 
   // Create depth material for shadows with optimized dependencies
@@ -119,7 +118,6 @@ export function useRibbonMaterials({
       vertexShader,
       depthPacking: THREE.RGBADepthPacking,
       side: THREE.DoubleSide,
-      transparent,
     });
   }, [
     nodeTex, 
@@ -127,8 +125,7 @@ export function useRibbonMaterials({
     baseWidth, 
     nodes, 
     trails, 
-    customVertexShader,
-    transparent
+    customVertexShader
   ]);
 
   return {

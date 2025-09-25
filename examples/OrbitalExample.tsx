@@ -64,8 +64,7 @@ export function OrbitalExample() {
           trails={trails.trails}
           baseWidth={displayControls.ribbonWidth}
           color={displayControls.ribbonColor}
-          wireframe={displayControls.wireframe}
-          transparent={true}
+          materialProps={{ wireframe: displayControls.wireframe, transparent: true }}
         />
       )}
 
