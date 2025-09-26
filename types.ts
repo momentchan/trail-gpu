@@ -9,6 +9,9 @@ export interface TrailConfig {
 
 export interface ParticleConfig {
   count: number;
+}
+
+export interface ParticleShaderParams {
   speed: number;
   noiseScale: number;
   timeScale: number;
@@ -135,6 +138,9 @@ export const DEFAULT_TRAIL_CONFIG: TrailConfig = {
 
 export const DEFAULT_PARTICLE_CONFIG: ParticleConfig = {
   count: 100,
+};
+
+export const DEFAULT_PARTICLE_SHADER_PARAMS: ParticleShaderParams = {
   speed: 0.6,
   noiseScale: 0.8,
   timeScale: 0.3,
