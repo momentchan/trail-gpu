@@ -35,16 +35,15 @@ export class GPUTrailParticles {
         config: Partial<ParticleConfig> = {},
         initialPositions?: Float32Array,
         uniforms: Partial<ParticleShaderParams> = {},
-        customUniforms = {},
     ) {
         this._count = count;
         this._config = { count, ...config };
         
         // Default uniform values
         this._uniforms = {
-            speed: 0.1,
-            noiseScale: 0.5,
-            timeScale: 0.3,
+            uSpeed: 0.1,
+            uNoiseScale: 0.5,
+            uTimeScale: 0.3,
             ...uniforms
         };
 
@@ -56,7 +55,7 @@ export class GPUTrailParticles {
         this._initialPositions = initialPositions;
 
         // Create update material
-        this._material = this._createUpdateMaterial(updateFragmentShader, customUniforms);
+        this._material = this._createUpdateMaterial(updateFragmentShader);
 
         // Create computation scene
         const { scene, quad, camera } = createComputationScene();
@@ -139,7 +138,7 @@ export class GPUTrailParticles {
      */
     updateUniforms(newUniforms: Partial<ParticleShaderParams>): void {
         Object.assign(this._uniforms, newUniforms);
-        this._updateShaderUniforms();
+        // Uniforms will be updated on the next frame in _updateUniforms()
     }
 
     /**
@@ -184,17 +183,18 @@ export class GPUTrailParticles {
         initTexture.dispose();
     }
 
-    private _createUpdateMaterial(fragmentShader: string, customUniforms: { [key: string]: { value: any } }): THREE.ShaderMaterial {
-        const uniforms = {
+    private _createUpdateMaterial(fragmentShader: string): THREE.ShaderMaterial {
+        const uniforms: { [key: string]: { value: any } } = {
             uParticlesPrev: { value: null },
             uTimeSec: { value: 0 },
             uDeltaTime: { value: 0.016 },
-            uSpeed: { value: this._uniforms.speed },
-            uNoiseScale: { value: this._uniforms.noiseScale },
-            uTimeScale: { value: this._uniforms.timeScale },
             uParticleCount: { value: this._count },
-            ...customUniforms,
         };
+
+        // Add uniforms from _uniforms in the correct Three.js format
+        for (const [key, value] of Object.entries(this._uniforms)) {
+            uniforms[key] = { value };
+        }
 
         return new THREE.ShaderMaterial({
             uniforms,
@@ -207,26 +207,22 @@ export class GPUTrailParticles {
 
     private _updateUniforms(timeSec: number, deltaTime: number): void {
         const uniforms = this._material.uniforms;
+        
+        // Update time-based uniforms (called every frame)
         uniforms.uParticlesPrev.value = this.particlesTexture;
         uniforms.uTimeSec.value = timeSec;
         uniforms.uDeltaTime.value = deltaTime;
-        uniforms.uSpeed.value = this._uniforms.speed;
-        uniforms.uNoiseScale.value = this._uniforms.noiseScale;
-        uniforms.uTimeScale.value = this._uniforms.timeScale;
-    }
-
-    private _updateShaderUniforms(): void {
-        const uniforms = this._material.uniforms;
-        uniforms.uSpeed.value = this._uniforms.speed;
-        uniforms.uNoiseScale.value = this._uniforms.noiseScale;
-        uniforms.uTimeScale.value = this._uniforms.timeScale;
         
-        // Update any custom uniforms
+        // Update parameter uniforms (uSpeed, uNoiseScale, uTimeScale)
+        uniforms.uSpeed.value = this._uniforms.uSpeed;
+        uniforms.uNoiseScale.value = this._uniforms.uNoiseScale;
+        uniforms.uTimeScale.value = this._uniforms.uTimeScale;
+        
+        // Update any custom uniforms dynamically
         for (const [key, value] of Object.entries(this._uniforms)) {
-            if (key !== 'speed' && key !== 'noiseScale' && key !== 'timeScale') {
-                const uniformName = `u${key.charAt(0).toUpperCase() + key.slice(1)}`;
-                if (uniforms[uniformName]) {
-                    uniforms[uniformName].value = value;
+            if (key !== 'uSpeed' && key !== 'uNoiseScale' && key !== 'uTimeScale') {
+                if (uniforms[key]) {
+                    uniforms[key].value = value;
                 }
             }
         }
@@ -234,13 +230,12 @@ export class GPUTrailParticles {
 
     private _updateSingleShaderUniform(name: string, value: any): void {
         const uniforms = this._material.uniforms;
-        const uniformName = `u${name.charAt(0).toUpperCase() + name.slice(1)}`;
         
-        if (uniforms[uniformName]) {
-            uniforms[uniformName].value = value;
+        if (uniforms[name]) {
+            uniforms[name].value = value;
         } else {
             // Add new uniform to the material if it doesn't exist
-            uniforms[uniformName] = { value };
+            uniforms[name] = { value };
         }
     }
 

@@ -17,6 +17,6 @@ export class FlowFieldParticles extends GPUTrailParticles {
 
   // Override to add flow field specific methods
   setFlowFieldParams(speed: number, noiseScale: number, timeScale: number) {
-    this.updateConfig({ speed, noiseScale, timeScale });
+    this.updateUniforms({ speed, noiseScale, timeScale });
   }
 }

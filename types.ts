@@ -12,9 +12,9 @@ export interface ParticleConfig {
 }
 
 export interface ParticleShaderParams {
-  speed: number;
-  noiseScale: number;
-  timeScale: number;
+  uSpeed: number;
+  uNoiseScale: number;
+  uTimeScale: number;
   [key: string]: any; // Allow any additional custom uniforms
 }
 
@@ -139,10 +139,4 @@ export const DEFAULT_TRAIL_CONFIG: TrailConfig = {
 
 export const DEFAULT_PARTICLE_CONFIG: ParticleConfig = {
   count: 100,
-};
-
-export const DEFAULT_PARTICLE_SHADER_PARAMS: ParticleShaderParams = {
-  speed: 0.6,
-  noiseScale: 0.8,
-  timeScale: 0.3,
 };
