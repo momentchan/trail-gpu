@@ -15,6 +15,7 @@ export interface ParticleShaderParams {
   speed: number;
   noiseScale: number;
   timeScale: number;
+  [key: string]: any; // Allow any additional custom uniforms
 }
 
 export interface RenderTargetConfig {

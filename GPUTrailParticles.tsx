@@ -143,6 +143,26 @@ export class GPUTrailParticles {
     }
 
     /**
+     * Adds or updates a single custom uniform
+     */
+    setUniform(name: string, value: any): void {
+        this._uniforms[name] = value;
+        this._updateSingleShaderUniform(name, value);
+    }
+
+    /**
+     * Removes a custom uniform
+     */
+    removeUniform(name: string): void {
+        delete this._uniforms[name];
+        // Note: We can't remove uniforms from the shader material once created
+        // But we can set them to a default value
+        if (this._material.uniforms[name]) {
+            this._material.uniforms[name].value = 0;
+        }
+    }
+
+    /**
      * Disposes of all resources
      */
     dispose(): void {
@@ -200,6 +220,28 @@ export class GPUTrailParticles {
         uniforms.uSpeed.value = this._uniforms.speed;
         uniforms.uNoiseScale.value = this._uniforms.noiseScale;
         uniforms.uTimeScale.value = this._uniforms.timeScale;
+        
+        // Update any custom uniforms
+        for (const [key, value] of Object.entries(this._uniforms)) {
+            if (key !== 'speed' && key !== 'noiseScale' && key !== 'timeScale') {
+                const uniformName = `u${key.charAt(0).toUpperCase() + key.slice(1)}`;
+                if (uniforms[uniformName]) {
+                    uniforms[uniformName].value = value;
+                }
+            }
+        }
+    }
+
+    private _updateSingleShaderUniform(name: string, value: any): void {
+        const uniforms = this._material.uniforms;
+        const uniformName = `u${name.charAt(0).toUpperCase() + name.slice(1)}`;
+        
+        if (uniforms[uniformName]) {
+            uniforms[uniformName].value = value;
+        } else {
+            // Add new uniform to the material if it doesn't exist
+            uniforms[uniformName] = { value };
+        }
     }
 
     private get _writeRenderTarget(): THREE.WebGLRenderTarget {
