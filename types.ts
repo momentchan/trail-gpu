@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 
-// Core configuration interfaces
 export interface TrailConfig {
   nodesPerTrail: number;
   trailsNum: number;

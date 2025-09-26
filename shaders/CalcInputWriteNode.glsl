@@ -1,12 +1,10 @@
-// Trail Node Writing Shader
-// Writes new node positions to the trail buffer when advancement occurs
-
 precision highp float;
 
 // Uniforms
 uniform sampler2D uNodePrev;         // Previous node positions (NxM: x, y, z, time)
-uniform sampler2D uTrailNext;        // Next trail state (1xM: head, valid, advance, time)
+uniform sampler2D uTrailCurr;        // Next trail state (1xM: head, valid, advance, time)
 uniform sampler2D uInputTex;         // Input positions (1xM: x, y, z, 1)
+uniform sampler2D uAdvanceTex;       // Advance texture (1xN: advance, 0)
 uniform int uNodes;                  // Number of nodes per trail
 uniform int uTrails;                 // Number of trails
 
@@ -26,7 +24,7 @@ vec4 readNodePrev(int node, int trail) {
  */
 vec4 readTrailNext(int trail) {
     float v = (float(trail) + 0.5) / float(uTrails);
-    return texture2D(uTrailNext, vec2(0.5, v));
+    return texture2D(uTrailCurr, vec2(0.5, v));
 }
 
 /**
@@ -48,7 +46,7 @@ void main() {
     // Read next trail state
     vec4 trailNext = readTrailNext(trail);
     int head = int(floor(trailNext.x + 0.5));
-    float advance = trailNext.z;
+    float advance = texture2D(uAdvanceTex, vec2(0.5, vUv.y)).r;
     float time = trailNext.w;
     
     // Read current input position

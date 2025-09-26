@@ -2,11 +2,14 @@ import { useMemo } from 'react';
 import { useControls } from 'leva';
 import { Ribbon } from '../Ribbon';
 import { ParticleDebugPoints } from '../ParticleDebugPoints';
-import { useTrailsWithParticles } from '../hooks/useTrailsWithParticles';
 import { useOrbitalParticles } from '../hooks/useOrbitalParticles';
-import { TrailConfig, ParticleConfig } from '../types';
+import { TrailConfig } from '../types';
+import { useFrame } from '@react-three/fiber';
+import { DistanceShaderPack } from '../shaders/packs/distance';
+import { useTrails } from '../hooks/useTrails';
 
 export function OrbitalExample() {
+
   // Trail configuration
   const trailControls = useControls('Trail System', {
     nodesPerTrail: { value: 60, min: 10, max: 200, step: 1 },
@@ -47,21 +50,32 @@ export function OrbitalExample() {
     particleConfig,
   });
 
-  // Combine with trail system
-  const { trails } = useTrailsWithParticles({
-    particleSystem: particles,
-    trailConfig,
+  const trail = useTrails({
+    nodesPerTrail: trailControls.nodesPerTrail,
+    trailsNum: trailControls.trailsNum,
+    updateDistanceMin: trailControls.updateDistanceMin,
+    shaderPack: DistanceShaderPack,
   });
+
+
+  useFrame(({ clock }, delta) => {
+    const t = clock.getElapsedTime();
+    if (!trail) return;
+
+    particles.stepUpdate(t, delta);
+    trail.update(t, delta, particles.particlesTexture);
+  });
+
 
   return (
     <>
       {/* Main ribbon visualization */}
-      {displayControls.showRibbon && (
+      {displayControls.showRibbon && trail.nodeTexture && trail.trailTexture && (
         <Ribbon
-          nodeTex={trails.nodeTexture}
-          trailTex={trails.trailTexture}
-          nodes={trails.nodes}
-          trails={trails.trails}
+          nodeTex={trail.nodeTexture}
+          trailTex={trail.trailTexture}
+          nodes={trailControls.nodesPerTrail}
+          trails={trailControls.trailsNum}
           baseWidth={displayControls.ribbonWidth}
           color={displayControls.ribbonColor}
           materialProps={{ wireframe: displayControls.wireframe, transparent: true }}

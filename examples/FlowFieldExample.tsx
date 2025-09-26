@@ -1,20 +1,18 @@
-import { useMemo } from 'react';
-import { useControls } from 'leva';
-import { Ribbon } from '../Ribbon';
-import { ParticleDebugPoints } from '../ParticleDebugPoints';
-import { useTrailsWithParticles } from '../hooks/useTrailsWithParticles';
-import { useFlowFieldParticles } from '../hooks/useFlowFieldParticles';
-import { TrailConfig, ParticleConfig } from '../types';
+'use client';
 
-export function FlowFieldExample() {
-  // Trail configuration
+import React, { useMemo } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { ParticleConfig, ParticleDebugPoints, Ribbon, useFlowFieldParticles, useTrails } from '..';
+import { useControls } from 'leva';
+import { DistanceShaderPack } from '../shaders/packs/distance';
+
+export default function FlowFieldExampleNew() {
   const trailControls = useControls('Trail System', {
     nodesPerTrail: { value: 60, min: 10, max: 200, step: 1 },
     trailsNum: { value: 100, min: 10, max: 500, step: 1 },
     updateDistanceMin: { value: 0.05, min: 0.01, max: 0.5, step: 0.01 },
   });
 
-  // Flow field particle configuration
   const particleControls = useControls('Flow Field Particles', {
     speed: { value: 0.6, min: 0.1, max: 2.0, step: 0.1 },
     noiseScale: { value: 0.8, min: 0.1, max: 2.0, step: 0.1 },
@@ -26,15 +24,8 @@ export function FlowFieldExample() {
     showParticlePoints: { value: true },
     ribbonColor: { value: '#8ec5ff' },
     ribbonWidth: { value: 0.08, min: 0.01, max: 0.3, step: 0.01 },
-    wireframe: { value: true },
+    wireframe: { value: false },
   });
-
-  // Create trail system configuration
-  const trailConfig: TrailConfig = useMemo(() => ({
-    nodesPerTrail: trailControls.nodesPerTrail,
-    trailsNum: trailControls.trailsNum,
-    updateDistanceMin: trailControls.updateDistanceMin,
-  }), [trailControls]);
 
   const particleConfig: ParticleConfig = useMemo(() => ({
     count: trailControls.trailsNum,
@@ -43,34 +34,42 @@ export function FlowFieldExample() {
     timeScale: particleControls.timeScale,
   }), [trailControls.trailsNum, particleControls]);
 
-  // Create flow field particle system
   const { particles } = useFlowFieldParticles({
     count: trailControls.trailsNum,
     particleConfig,
   });
 
-  // Combine with trail system
-  const { trails } = useTrailsWithParticles({
-    particleSystem: particles,
-    trailConfig,
+
+  const config = useMemo(() => ({
+    nodesPerTrail: trailControls.nodesPerTrail,
+    trailsNum: trailControls.trailsNum,
+    updateDistanceMin: trailControls.updateDistanceMin,
+    shaderPack: DistanceShaderPack,
+  }), [trailControls.nodesPerTrail, trailControls.trailsNum, trailControls.updateDistanceMin]);
+
+  const trail = useTrails(config);
+
+  useFrame(({ clock }, delta) => {
+    const t = clock.getElapsedTime();
+    if (!trail) return;
+
+    particles.stepUpdate(t, delta);
+    trail.update(t, delta, particles.particlesTexture);
   });
 
   return (
     <>
-      {/* Main ribbon visualization */}
-      {displayControls.showRibbon && (
+      {trail.nodeTexture && trail.trailTexture ? (
         <Ribbon
-          nodeTex={trails.nodeTexture}
-          trailTex={trails.trailTexture}
-          nodes={trails.nodes}
-          trails={trails.trails}
-          baseWidth={displayControls.ribbonWidth}
-          color={displayControls.ribbonColor} 
-          materialProps={{ wireframe: displayControls.wireframe, transparent: true }}
+          nodeTex={trail.nodeTexture}
+          trailTex={trail.trailTexture}
+          nodes={trailControls.nodesPerTrail}
+          trails={trailControls.trailsNum}
+          baseWidth={0.01}
+          materialProps={{ wireframe: true, transparent: false }}
         />
-      )}
+      ) : null}
 
-      {/* Debug points for particle positions */}
       {displayControls.showParticlePoints && (
         <ParticleDebugPoints
           particleTexture={particles.particlesTexture}
@@ -81,4 +80,5 @@ export function FlowFieldExample() {
       )}
     </>
   );
+
 }
