@@ -10,16 +10,11 @@ export { Ribbon } from './Ribbon';
 export { ParticleDebugPoints } from './ParticleDebugPoints';
 
 // Hooks
-export {
-  useTrails,
-  useParticles,
-  useFlowFieldParticles,
-  useOrbitalParticles,
-  useTrailsWithParticles,
-  useRibbonGeometry,
-  useRibbonMaterials,
-  useRibbonUniforms,
-} from './hooks';
+export { useTrails } from './hooks/useTrails';
+export { useParticles } from './hooks/useParticles';
+export { useFlowFieldParticles } from './hooks/useFlowFieldParticles';
+export { useOrbitalParticles } from './hooks/useOrbitalParticles';
+export { useTrailsWithParticles } from './hooks/useTrailsWithParticles';
 
 // Example Scenes
 export { FlowFieldExample } from './examples/FlowFieldExample';
