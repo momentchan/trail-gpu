@@ -6,7 +6,7 @@ import { TrailWriteNodePass } from './TrailWriteNodePass';
 import { Blitter } from '../utils/Blit';
 import { assertPositive, validateRenderer } from '../spec/validators';
 import { makeRTParams, ShaderPack, TrailConfig } from '../spec/constants';
-
+import { RenderTargetUtils } from '../utils/RenderTargetUtils';
 
 export interface TrailTextures {
     trail: THREE.WebGLRenderTarget;    // 1 x M
@@ -56,12 +56,12 @@ export class TrailCompute {
         this.inputRT = this.pool.get(1, cfg.trailsNum, this.rtParams);
         this.advanceRT = this.pool.get(1, cfg.trailsNum, this.rtParams);
 
-        this.clearRT(this.trailA, new THREE.Color(0, 0, 0));
-        this.clearRT(this.trailB, new THREE.Color(0, 0, 0));
-        this.clearRT(this.nodeA, new THREE.Color(0, 0, 0));
-        this.clearRT(this.nodeB, new THREE.Color(0, 0, 0));
-        this.clearRT(this.inputRT, new THREE.Color(0, 0, 0));
-        this.clearRT(this.advanceRT, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.trailA, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.trailB, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.nodeA, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.nodeB, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.inputRT, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.advanceRT, new THREE.Color(0, 0, 0));
 
         this.advancePass = new TrailAdvancePass(this.gl, shaders.advance, cfg.advance);
         this.advancePass.setupDims(cfg.nodesPerTrail, cfg.trailsNum);
@@ -133,12 +133,12 @@ export class TrailCompute {
         this.inputRT = this.pool.get(1, trailsNum, this.rtParams);
         this.advanceRT = this.pool.get(1, trailsNum, this.rtParams);
 
-        this.clearRT(this.trailA, new THREE.Color(0, 0, 0));
-        this.clearRT(this.trailB, new THREE.Color(0, 0, 0));
-        this.clearRT(this.nodeA, new THREE.Color(0, 0, 0));
-        this.clearRT(this.nodeB, new THREE.Color(0, 0, 0));
-        this.clearRT(this.inputRT, new THREE.Color(0, 0, 0));
-        this.clearRT(this.advanceRT, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.trailA, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.trailB, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.nodeA, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.nodeB, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.inputRT, new THREE.Color(0, 0, 0));
+        RenderTargetUtils.clearRT(this.gl, this.advanceRT, new THREE.Color(0, 0, 0));
 
         this.advancePass.setupDims(nodesPerTrail, trailsNum);
     }

@@ -89,9 +89,37 @@ export function generateRandomParticlePositions(
     data[i * 4] = (Math.random() - 0.5) * scale;     // x
     data[i * 4 + 1] = (Math.random() - 0.5) * scale; // y
     data[i * 4 + 2] = (Math.random() - 0.5) * scale; // z
-    data[i * 4 + 3] = 1;                             // aux
+    data[i * 4 + 3] = 1;                             // aux1
   }
   
+  return data;
+}
+
+/**
+ * Generates random particle velocities
+ */
+export function generateRandomParticleVelocities(
+  count: number,
+  scale: number = 1
+): Float32Array {
+  const data = new Float32Array(count * 4);
+  
+  for (let i = 0; i < count; i++) {
+    data[i * 4] = (Math.random() - 0.5) * scale;     // vx
+    data[i * 4 + 1] = (Math.random() - 0.5) * scale; // vy
+    data[i * 4 + 2] = (Math.random() - 0.5) * scale; // vz
+    data[i * 4 + 3] = 0;                             // aux2
+  }
+  
+  return data;
+}
+
+/**
+ * Generates zero velocities for all particles
+ */
+export function generateZeroVelocities(count: number): Float32Array {
+  const data = new Float32Array(count * 4);
+  data.fill(0);
   return data;
 }
 

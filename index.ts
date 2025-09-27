@@ -2,8 +2,7 @@
 // A high-performance GPU-based trail rendering system for Three.js
 
 // Core Classes
-export { GPUTrailParticles } from './GPUTrailParticles';
-export { GPUTrailsPass } from './GPUTrailsPass';
+export { ParticleCompute } from './core/compute/ParticleCompute';
 
 // React Components
 export { Ribbon } from './Ribbon';
@@ -12,13 +11,13 @@ export { ParticleDebugPoints } from './ParticleDebugPoints';
 // Hooks
 export { useTrails } from './hooks/useTrails';
 export { useParticles } from './hooks/useParticles';
-export { useFlowFieldParticles } from './hooks/useFlowFieldParticles';
-export { useOrbitalParticles } from './hooks/useOrbitalParticles';
 
 // Types and Interfaces
 export type {
   TrailConfig,
   ParticleConfig,
+  ParticleShaderConfig,
+  CustomUniforms,
   RenderTargetConfig,
   TrailData,
   NodeData,
@@ -59,6 +58,7 @@ export {
 // Shaders
 export {
   updateParticlesFrag,
+  velPosTemplateFrag,
   calcInputHeadFrag,
   calcInputWriteNodeFrag,
   ribbonVertexShader,
@@ -66,9 +66,10 @@ export {
   SHADER_CONSTANTS,
 } from './shaders';
 
-// Particle Systems
-export { FlowFieldParticles } from './particles/FlowFieldParticles';
-export { OrbitalParticles } from './particles/OrbitalParticles';
+// Examples
+export { default as FlowFieldExample } from './examples/FlowFieldExample';
+export { OrbitalExample } from './examples/OrbitalExample';
+export { VelPosExample } from './examples/VelPosExample';
 
 // Re-export commonly used Three.js types for convenience
 export type { Texture, WebGLRenderTarget, ShaderMaterial } from 'three';

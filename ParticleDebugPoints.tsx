@@ -58,16 +58,36 @@ export function ParticleDebugPoints({
           
           // Extract position
           vec3 worldPos = particleData.xyz;
+          float alpha = particleData.w;
+          
+          // Debug: Use alpha to create color variation
+          vColor = vec3(alpha, alpha, alpha);
+          
+          // Debug: Make first few particles larger and use different colors
+          if (aInstanceId < 3.0) {
+            // Make first few particles larger so we can see them
+            gl_PointSize = uSize * 10.0;
+            // Use different colors for first 3 particles
+            if (aInstanceId < 1.0) {
+              vColor = vec3(1.0, 0.0, 0.0); // Red
+            } else if (aInstanceId < 2.0) {
+              vColor = vec3(0.0, 1.0, 0.0); // Green  
+            } else {
+              vColor = vec3(0.0, 0.0, 1.0); // Blue
+            }
+          } else {
+            vColor = vec3(1.0, 1.0, 0.0); // Yellow for others
+          }
           
           // Transform to clip space
           vec4 mvPosition = modelViewMatrix * vec4(worldPos, 1.0);
           gl_Position = projectionMatrix * mvPosition;
           
-          // Set point size
-          gl_PointSize = uSize * (300.0 / -mvPosition.z);
-          
-          // Pass color
-          vColor = vec3(1.0, 0.0, 0.0); // Red color for particles
+          // Set point size for non-debug particles
+          if (aInstanceId >= 3.0) {
+            float pointSize = uSize * (300.0 / -mvPosition.z);
+            gl_PointSize = pointSize;
+          }
         }
       `,
       fragmentShader: `

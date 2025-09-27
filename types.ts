@@ -8,6 +8,15 @@ export interface TrailConfig {
 
 export interface ParticleConfig {
   count: number;
+  // Physics parameters
+  gravity?: THREE.Vector3;
+  damping?: number;        // Velocity damping factor
+  maxSpeed?: number;       // Maximum velocity magnitude
+  // Integration method
+  integrationMethod?: 'euler' | 'verlet' | 'rk4';
+  // Initial conditions
+  initialPositions?: Float32Array;
+  initialVelocities?: Float32Array;
 }
 
 export interface ParticleShaderParams {
@@ -15,6 +24,18 @@ export interface ParticleShaderParams {
   uNoiseScale: number;
   uTimeScale: number;
   [key: string]: any; // Allow any additional custom uniforms
+}
+
+export interface CustomUniforms {
+  [key: string]: any;
+}
+
+export interface ParticleShaderConfig {
+  vertexShader?: string;
+  fragmentShader?: string; // For backward compatibility
+  velocityShader?: string; // For velocity pass
+  positionShader?: string; // For position pass
+  uniforms?: CustomUniforms;
 }
 
 export interface RenderTargetConfig {
@@ -43,7 +64,9 @@ export interface NodeData {
 
 export interface ParticleData {
   position: THREE.Vector3;
-  aux: number;
+  velocity: THREE.Vector3;
+  aux1: number;
+  aux2: number;
 }
 
 // Uniform interfaces
@@ -59,12 +82,17 @@ export interface TrailUniforms {
 
 export interface ParticleUniforms {
   uParticlesPrev: { value: THREE.Texture | null };
+  uPositionsPrev: { value: THREE.Texture | null };
+  uVelocitiesPrev: { value: THREE.Texture | null };
   uTimeSec: { value: number };
   uDeltaTime: { value: number };
   uSpeed: { value: number };
   uNoiseScale: { value: number };
   uTimeScale: { value: number };
   uParticleCount: { value: number };
+  uGravity: { value: THREE.Vector3 };
+  uDamping: { value: number };
+  uMaxSpeed: { value: number };
 }
 
 export interface RibbonUniforms {
