@@ -57,7 +57,6 @@ export {
 
 // Shaders
 export {
-  updateParticlesFrag,
   velPosTemplateFrag,
   calcInputHeadFrag,
   calcInputWriteNodeFrag,

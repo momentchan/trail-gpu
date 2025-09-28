@@ -1,7 +1,6 @@
 // Shader imports and exports
 // This file centralizes all shader imports for easier management
 
-import updateParticlesFrag from './UpdateParticles.glsl?raw';
 import velPosTemplateFrag from './VelPosTemplate.glsl?raw';
 import calcInputHeadFrag from './CalcInputHead.glsl?raw';
 import calcInputWriteNodeFrag from './CalcInputWriteNode.glsl?raw';
@@ -9,7 +8,6 @@ import ribbonVertexShader from './RibbonVertex.glsl?raw';
 import ribbonFragmentShader from './RibbonFragment.glsl?raw';
 
 export {
-  updateParticlesFrag,
   velPosTemplateFrag,
   calcInputHeadFrag,
   calcInputWriteNodeFrag,
