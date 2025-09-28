@@ -114,12 +114,14 @@ export interface RibbonProps {
   trails: number;
   baseWidth?: number;
   color?: string;
+  // Geometry configuration
+  geometryType?: 'quad'; // Only quad for now, tube will be added later
+  geometryConfig?: any;
+  // Material configuration
+  materialType?: 'standard' | 'custom-shader';
+  materialConfig?: any;
   // Flexible material properties - pass any Three.js material props
   materialProps?: Partial<THREE.MeshStandardMaterialParameters>;
-  // Custom shader props
-  customVertexShader?: string;
-  customFragmentShader?: string;
-  customUniforms?: { [key: string]: { value: any } };
 }
 
 export interface DebugPointsProps {

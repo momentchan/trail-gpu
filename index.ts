@@ -8,6 +8,14 @@ export { ParticleCompute } from './core/compute/ParticleCompute';
 export { Ribbon } from './Ribbon';
 export { ParticleDebugPoints } from './ParticleDebugPoints';
 
+// Geometry Providers
+export { geometryProviders, QuadGeometryProvider } from './geometry';
+export type { GeometryProvider, QuadGeometryConfig, GeometryType } from './geometry';
+
+// Material Providers
+export { materialProviders, StandardMaterialProvider, CustomShaderMaterialProvider } from './materials';
+export type { MaterialProvider, StandardMaterialConfig, CustomShaderMaterialConfig, MaterialType } from './materials';
+
 // Hooks
 export { useTrails } from './hooks/useTrails';
 export { useParticles } from './hooks/useParticles';
@@ -69,6 +77,7 @@ export {
 export { default as FlowFieldExample } from './examples/FlowFieldExample';
 export { OrbitalExample } from './examples/OrbitalExample';
 export { VelPosExample } from './examples/VelPosExample';
+export { RibbonExample } from './examples/RibbonExample';
 
 // Re-export commonly used Three.js types for convenience
 export type { Texture, WebGLRenderTarget, ShaderMaterial } from 'three';
