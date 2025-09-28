@@ -108,20 +108,13 @@ export interface RibbonUniforms {
 
 // Component props
 export interface RibbonProps {
-  nodeTex: THREE.Texture;
-  trailTex: THREE.Texture;
-  nodes: number;
+  geometry: THREE.InstancedBufferGeometry;
+  material: THREE.Material | null;
+  depthMaterial?: THREE.Material | null;
   trails: number;
-  baseWidth?: number;
-  color?: string;
-  // Geometry configuration
-  geometryType?: 'quad'; // Only quad for now, tube will be added later
-  geometryConfig?: any;
-  // Material configuration
-  materialType?: 'standard' | 'custom-shader';
-  materialConfig?: any;
-  // Flexible material properties - pass any Three.js material props
-  materialProps?: Partial<THREE.MeshStandardMaterialParameters>;
+  receiveShadow?: boolean;
+  castShadow?: boolean;
+  frustumCulled?: boolean;
 }
 
 export interface DebugPointsProps {

@@ -1,10 +1,11 @@
-import * as THREE from 'three';
 import { useMemo } from 'react';
-import CustomShaderMaterial from "three-custom-shader-material/vanilla";
-import { SHADER_CONSTANTS } from '../shaders';
-import { TrailGPUError } from '../types';
+import { useFrame, useThree } from '@react-three/fiber';
+import * as THREE from 'three';
+import { materialProviders, MaterialType, MaterialConfig } from '../materials';
 
-export interface UseRibbonMaterialsOptions {
+export interface UseRibbonMaterialsConfig {
+  materialType: MaterialType;
+  materialConfig: MaterialConfig;
   nodeTex: THREE.Texture;
   trailTex: THREE.Texture;
   baseWidth: number;
@@ -12,21 +13,11 @@ export interface UseRibbonMaterialsOptions {
   trails: number;
   color: string;
   materialProps?: Partial<THREE.MeshStandardMaterialParameters>;
-  customVertexShader?: string;
-  customFragmentShader?: string;
-  customUniforms?: { [key: string]: { value: any } };
 }
 
-export interface UseRibbonMaterialsReturn {
-  material: CustomShaderMaterial;
-  depthMaterial: CustomShaderMaterial;
-  baseUniforms: { [key: string]: { value: any } };
-}
-
-/**
- * Custom hook for creating ribbon materials with proper uniforms
- */
 export function useRibbonMaterials({
+  materialType,
+  materialConfig,
   nodeTex,
   trailTex,
   baseWidth,
@@ -34,103 +25,59 @@ export function useRibbonMaterials({
   trails,
   color,
   materialProps = {},
-  customVertexShader,
-  customFragmentShader,
-  customUniforms = {},
-}: UseRibbonMaterialsOptions): UseRibbonMaterialsReturn {
+}: UseRibbonMaterialsConfig): {
+  material: THREE.Material | null;
+  depthMaterial: THREE.Material | null;
+} {
+  const provider = materialProviders[materialType];
   
-  // Validate inputs
-  if (!nodeTex || !trailTex) {
-    throw new TrailGPUError('useRibbonMaterials: nodeTex and trailTex are required');
-  }
-  if (baseWidth <= 0) {
-    throw new TrailGPUError('useRibbonMaterials: baseWidth must be greater than 0');
-  }
-  if (nodes <= 0 || trails <= 0) {
-    throw new TrailGPUError('useRibbonMaterials: nodes and trails must be greater than 0');
-  }
-  
-  // Create base uniforms that are always needed
-  const baseUniforms = useMemo(() => {
-    const colorObj = new THREE.Color(color);
+  const { material, depthMaterial } = useMemo(() => {
+    // Return null if textures aren't ready yet
+    if (!nodeTex || !trailTex) {
+      return {
+        material: null,
+        depthMaterial: null,
+      };
+    }
+    
+    const config = {
+      ...materialConfig,
+      nodeTex,
+      trailTex,
+      baseWidth,
+      nodes,
+      trails,
+      color,
+      materialProps,
+    };
     
     return {
-      uNodeTex: { value: nodeTex },
-      uTrailTex: { value: trailTex },
-      uBaseWidth: { value: baseWidth },
-      uNodes: { value: nodes },
-      uTrails: { value: trails },
-      uCameraPos: { value: new THREE.Vector3() },
-      uColor: { value: colorObj },
-      uTime: { value: 0 },
-      uDebug: { value: 0 },
+      material: provider.createMaterial(config),
+      depthMaterial: provider.createDepthMaterial(config),
     };
-  }, [nodeTex, trailTex, baseWidth, nodes, trails, color]);
-
-  // Create main material with optimized dependencies
-  const material = useMemo(() => {
-    // Merge base uniforms with custom uniforms
-    const uniforms = {
-      ...baseUniforms,
-      ...customUniforms,
-    };
-
-    // Use custom shaders or fallback to defaults
-    const vertexShader = customVertexShader || SHADER_CONSTANTS.RIBBON_VERTEX;
-    const fragmentShader = customFragmentShader || SHADER_CONSTANTS.RIBBON_FRAGMENT;
-    // Create base material with flexible properties
-    const baseMaterial = new THREE.MeshStandardMaterial({
-      ...materialProps, 
-    });
-
-    return new CustomShaderMaterial({
-      baseMaterial,
-      uniforms,
-      vertexShader,
-      fragmentShader,
-    });
   }, [
-    baseUniforms, 
-    customUniforms, 
-    customVertexShader, 
-    customFragmentShader, 
+    provider,
+    nodeTex,
+    trailTex,
+    baseWidth,
+    nodes,
+    trails,
     color,
-    materialProps
+    materialProps,
+    materialConfig,
   ]);
 
-  // Create depth material for shadows with optimized dependencies
-  const depthMaterial = useMemo(() => {
-    const vertexShader = customVertexShader || SHADER_CONSTANTS.RIBBON_VERTEX;
+  // Update uniforms each frame
+  const { camera } = useThree();
+  useFrame(() => {
+    if (material) {
+      const uniforms = {
+        uCameraPos: { value: camera.position },
+        uTime: { value: performance.now() * 0.001 },
+      };
+      provider.updateUniforms(material, uniforms);
+    }
+  });
 
-    // For depth material, we only need essential uniforms
-    const depthUniforms = {
-      uNodeTex: { value: nodeTex },
-      uTrailTex: { value: trailTex },
-      uBaseWidth: { value: baseWidth },
-      uNodes: { value: nodes },
-      uTrails: { value: trails },
-      uDebug: { value: 0 },
-    };
-
-    return new CustomShaderMaterial({
-      baseMaterial: THREE.MeshDepthMaterial,
-      uniforms: depthUniforms,
-      vertexShader,
-      depthPacking: THREE.RGBADepthPacking,
-      side: THREE.DoubleSide,
-    });
-  }, [
-    nodeTex, 
-    trailTex, 
-    baseWidth, 
-    nodes, 
-    trails, 
-    customVertexShader
-  ]);
-
-  return {
-    material,
-    depthMaterial,
-    baseUniforms,
-  };
+  return { material, depthMaterial };
 }

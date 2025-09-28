@@ -6,6 +6,8 @@ import calcInputHeadFrag from './CalcInputHead.glsl?raw';
 import calcInputWriteNodeFrag from './CalcInputWriteNode.glsl?raw';
 import ribbonVertexShader from './RibbonVertex.glsl?raw';
 import ribbonFragmentShader from './RibbonFragment.glsl?raw';
+import tubeVertexShader from './TubeVertex.glsl?raw';
+import tubeFragmentShader from './TubeFragment.glsl?raw';
 
 export {
   velPosTemplateFrag,
@@ -13,6 +15,8 @@ export {
   calcInputWriteNodeFrag,
   ribbonVertexShader,
   ribbonFragmentShader,
+  tubeVertexShader,
+  tubeFragmentShader,
 };
 
 // Shader constants
@@ -28,4 +32,6 @@ export const SHADER_CONSTANTS = {
   
   RIBBON_VERTEX: ribbonVertexShader,
   RIBBON_FRAGMENT: ribbonFragmentShader,
+  TUBE_VERTEX: tubeVertexShader,
+  TUBE_FRAGMENT: tubeFragmentShader,
 } as const;

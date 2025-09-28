@@ -9,16 +9,18 @@ export { Ribbon } from './Ribbon';
 export { ParticleDebugPoints } from './ParticleDebugPoints';
 
 // Geometry Providers
-export { geometryProviders, QuadGeometryProvider } from './geometry';
-export type { GeometryProvider, QuadGeometryConfig, GeometryType } from './geometry';
+export { geometryProviders, QuadGeometryProvider, TubeGeometryProvider } from './geometry';
+export type { GeometryProvider, QuadGeometryConfig, TubeGeometryConfig, GeometryType } from './geometry';
 
 // Material Providers
-export { materialProviders, StandardMaterialProvider, CustomShaderMaterialProvider } from './materials';
+export { materialProviders, StandardMaterialProvider, CustomShaderMaterialProvider, TubeMaterialProvider } from './materials';
 export type { MaterialProvider, StandardMaterialConfig, CustomShaderMaterialConfig, MaterialType } from './materials';
 
 // Hooks
 export { useTrails } from './hooks/useTrails';
 export { useParticles } from './hooks/useParticles';
+export { useRibbonGeometry, useRibbonMaterials } from './hooks';
+export type { UseRibbonGeometryConfig, UseRibbonMaterialsConfig } from './hooks';
 
 // Types and Interfaces
 export type {
@@ -70,6 +72,8 @@ export {
   calcInputWriteNodeFrag,
   ribbonVertexShader,
   ribbonFragmentShader,
+  tubeVertexShader,
+  tubeFragmentShader,
   SHADER_CONSTANTS,
 } from './shaders';
 
@@ -77,7 +81,8 @@ export {
 export { default as FlowFieldExample } from './examples/FlowFieldExample';
 export { OrbitalExample } from './examples/OrbitalExample';
 export { VelPosExample } from './examples/VelPosExample';
-export { RibbonExample } from './examples/RibbonExample';
+export { RibbonQuadExample } from './examples/RibbonQuadExample';
+export { RibbonTubeExample } from './examples/RibbonTubeExample';
 
 // Re-export commonly used Three.js types for convenience
 export type { Texture, WebGLRenderTarget, ShaderMaterial } from 'three';

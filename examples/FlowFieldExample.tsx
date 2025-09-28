@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useParticles, useTrails, Ribbon, ParticleDebugPoints } from '../index';
+import { useParticles, useTrails, Ribbon, ParticleDebugPoints, useRibbonGeometry, useRibbonMaterials } from '../index';
 import { DistanceShaderPack } from '../shaders/packs/distance';
 
 // Velocity shader for flow field
@@ -164,6 +164,33 @@ export default function FlowFieldExample() {
     shaderPack: DistanceShaderPack,
   });
 
+  // Create geometry
+  const geometry = useRibbonGeometry({
+    geometryType: 'quad',
+    geometryConfig: { nodes: 80, trails: 1000, width: 1.0 },
+    nodes: 80,
+    trails: 1000,
+  });
+
+  // Create materials
+  const materials = useRibbonMaterials({
+    materialType: 'standard',
+    materialConfig: { 
+      nodeTex: trails.nodeTexture!, 
+      trailTex: trails.trailTexture!, 
+      baseWidth: 0.02, 
+      nodes: 80, 
+      trails: 1000, 
+      color: '#555555' 
+    },
+    nodeTex: trails.nodeTexture!,
+    trailTex: trails.trailTexture!,
+    baseWidth: 0.02,
+    nodes: 80,
+    trails: 1000,
+    color: '#555555',
+  });
+
   // Update particles and trails each frame
   useFrame((state, delta) => {
     const time = state.clock.elapsedTime;
@@ -175,15 +202,14 @@ export default function FlowFieldExample() {
 
   return (
     <>
-      {trails.nodeTexture && trails.trailTexture &&
+      {trails.nodeTexture && trails.trailTexture && materials.material && (
         <Ribbon
-          nodeTex={trails.nodeTexture!}
-          trailTex={trails.trailTexture!}
-          nodes={80}
+          geometry={geometry}
+          material={materials.material}
+          depthMaterial={materials.depthMaterial}
           trails={1000}
-          color="#555555"
-          baseWidth={0.02}
-        />}
+        />
+      )}
     </>
   );
 }

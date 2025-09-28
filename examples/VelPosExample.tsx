@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { useParticles, useTrails, Ribbon, ParticleDebugPoints } from '../index';
+import { useParticles, useTrails, Ribbon, ParticleDebugPoints, useRibbonGeometry, useRibbonMaterials } from '../index';
 import { DistanceShaderPack } from '../shaders/packs/distance';
 
 export function VelPosExample() {
@@ -35,16 +35,41 @@ export function VelPosExample() {
         trails.update(time, delta, particles.positionsTexture!);
     });
 
+    // Create geometry
+    const geometry = useRibbonGeometry({
+        geometryType: 'quad',
+        geometryConfig: { nodes: 60, trails: 500, width: 1.0 },
+        nodes: 60,
+        trails: 500,
+    });
+
+    // Create materials
+    const materials = useRibbonMaterials({
+        materialType: 'standard',
+        materialConfig: { 
+            nodeTex: trails.nodeTexture!, 
+            trailTex: trails.trailTexture!, 
+            baseWidth: 0.08, 
+            nodes: 60, 
+            trails: 500, 
+            color: '#8ec5ff' 
+        },
+        nodeTex: trails.nodeTexture!,
+        trailTex: trails.trailTexture!,
+        baseWidth: 0.08,
+        nodes: 60,
+        trails: 500,
+        color: '#8ec5ff',
+    });
+
     return (
         <>
-            {trails.nodeTexture && trails.trailTexture && (
+            {trails.nodeTexture && trails.trailTexture && materials.material && (
                 <Ribbon
-                    nodeTex={trails.nodeTexture}
-                    trailTex={trails.trailTexture}
-                    nodes={60}
+                    geometry={geometry}
+                    material={materials.material}
+                    depthMaterial={materials.depthMaterial}
                     trails={500}
-                    color="#8ec5ff"
-                    baseWidth={0.08}
                 />
             )}
 

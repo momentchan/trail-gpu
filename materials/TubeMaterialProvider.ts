@@ -4,15 +4,15 @@ import { MaterialProvider, StandardMaterialConfig } from './types';
 import { SHADER_CONSTANTS } from '../shaders';
 import { TrailGPUError } from '../types';
 
-export const StandardMaterialProvider: MaterialProvider = {
-  name: 'standard',
+export const TubeMaterialProvider: MaterialProvider = {
+  name: 'tube',
   
   createMaterial(config: StandardMaterialConfig): THREE.Material {
-    const { nodeTex, trailTex, baseWidth, nodes, trails, color, materialProps = {}, customVertexShader, customFragmentShader, customUniforms = {} } = config;
+    const { nodeTex, trailTex, baseWidth, nodes, trails, color, materialProps = {} } = config;
     
     // Validate inputs
     if (!nodeTex || !trailTex) {
-      throw new TrailGPUError('StandardMaterialProvider: nodeTex and trailTex are required');
+      throw new TrailGPUError('TubeMaterialProvider: nodeTex and trailTex are required');
     }
     
     // Create base uniforms
@@ -28,15 +28,9 @@ export const StandardMaterialProvider: MaterialProvider = {
       uDebug: { value: 0 },
     };
 
-    // Merge base uniforms with custom uniforms
-    const uniforms = {
-      ...baseUniforms,
-      ...customUniforms,
-    };
-
-    // Use custom shaders or fallback to defaults
-    const vertexShader = customVertexShader || SHADER_CONSTANTS.RIBBON_VERTEX;
-    const fragmentShader = customFragmentShader || SHADER_CONSTANTS.RIBBON_FRAGMENT;
+    // Use tube shaders
+    const vertexShader = SHADER_CONSTANTS.TUBE_VERTEX;
+    const fragmentShader = SHADER_CONSTANTS.TUBE_FRAGMENT;
 
     // Create base material
     const baseMaterial = new THREE.MeshStandardMaterial({
@@ -45,16 +39,16 @@ export const StandardMaterialProvider: MaterialProvider = {
 
     return new CustomShaderMaterial({
       baseMaterial,
-      uniforms,
+      uniforms: baseUniforms,
       vertexShader,
       fragmentShader,
     });
   },
   
   createDepthMaterial(config: StandardMaterialConfig): THREE.Material {
-    const { nodeTex, trailTex, baseWidth, nodes, trails, customVertexShader } = config;
+    const { nodeTex, trailTex, baseWidth, nodes, trails } = config;
     
-    const vertexShader = customVertexShader || SHADER_CONSTANTS.RIBBON_VERTEX;
+    const vertexShader = SHADER_CONSTANTS.TUBE_VERTEX;
 
     // For depth material, we only need essential uniforms
     const depthUniforms = {

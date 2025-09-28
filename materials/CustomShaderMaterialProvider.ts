@@ -54,8 +54,8 @@ export const CustomShaderMaterialProvider: MaterialProvider = {
   },
   
   updateUniforms(material: THREE.Material, uniforms: any): void {
-    if (material.uniforms) {
-      Object.assign(material.uniforms, uniforms);
+    if ((material as any).uniforms) {
+      Object.assign((material as any).uniforms, uniforms);
     }
   }
 };
