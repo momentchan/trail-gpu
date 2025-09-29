@@ -5,6 +5,7 @@ import { useParticles, useTrails, Ribbon, ParticleDebugPoints, useRibbonGeometry
 import { DistanceShaderPack } from '../shaders/packs/distance';
 
 // Velocity shader for orbital motion
+// Velocity shader for orbital motion
 const orbitalVelocityShader = /* glsl */ `
 precision highp float;
 
@@ -12,90 +13,128 @@ uniform sampler2D uPositionsPrev;
 uniform sampler2D uVelocitiesPrev;
 uniform float uTimeSec;
 uniform float uDeltaTime;
+uniform float uParticleCount;
+
+// Default physics uniforms
+uniform vec3 uGravity;
+uniform float uDamping;
+uniform float uMaxSpeed;
+
+// Orbital parameters
+uniform float uRadius;
+uniform float uOrbitSpeed;
+uniform vec3 uCenter;
 
 varying vec2 vUv;
 
-// 3D noise function
-float noise3D(vec3 p) {
-    return fract(sin(dot(p, vec3(12.9898, 78.233, 54.321))) * 43758.5453);
+int pixelIndex() {
+    float y = vUv.y * float(uParticleCount);
+    return int(floor(y));
 }
 
-// Smooth noise
-float smoothNoise3D(vec3 p) {
-    vec3 i = floor(p);
-    vec3 f = fract(p);
+vec4 readParticlePos(int k) {
+    float v = (float(k) + 0.5) / float(uParticleCount);
+    return texture2D(uPositionsPrev, vec2(0.5, v));
+}
+
+vec4 readParticleVel(int k) {
+    float v = (float(k) + 0.5) / float(uParticleCount);
+    return texture2D(uVelocitiesPrev, vec2(0.5, v));
+}
+
+// Custom force calculation
+vec3 calculateCustomForces(vec3 pos, vec3 vel, float aux1, float aux2, float time) {
+    // Calculate orbital force (centripetal force)
+    vec3 toCenter = uCenter - pos;
+    float distance = length(toCenter);
     
-    float a = noise3D(i);
-    float b = noise3D(i + vec3(1.0, 0.0, 0.0));
-    float c = noise3D(i + vec3(0.0, 1.0, 0.0));
-    float d = noise3D(i + vec3(1.0, 1.0, 0.0));
-    float e = noise3D(i + vec3(0.0, 0.0, 1.0));
-    float f = noise3D(i + vec3(1.0, 0.0, 1.0));
-    float g = noise3D(i + vec3(0.0, 1.0, 1.0));
-    float h = noise3D(i + vec3(1.0, 1.0, 1.0));
+    // Add some variation per particle
+    int idx = pixelIndex();
+    float particleVariation = float(idx) * 0.01;
     
-    vec3 u = f * f * (3.0 - 2.0 * f);
+    // Create orbital force with some spiral motion
+    vec3 orbitalForce = normalize(toCenter) * uOrbitSpeed * uOrbitSpeed * (uRadius + particleVariation);
     
-    return mix(mix(mix(a, b, u.x), mix(c, d, u.x), u.y),
-               mix(mix(e, f, u.x), mix(g, h, u.x), u.y), u.z);
+    // Add some spiral motion
+    vec3 tangent = cross(toCenter, vec3(0, 1, 0));
+    if (length(tangent) > 0.1) {
+        tangent = normalize(tangent);
+        orbitalForce += tangent * uOrbitSpeed * 0.5;
+    }
+    
+    return orbitalForce;
 }
 
 void main() {
-    vec2 uv = vUv;
+    int idx = pixelIndex();
     
-    // Read previous position and velocity
-    vec4 prevPos = texture2D(uPositionsPrev, uv);
-    vec4 prevVel = texture2D(uVelocitiesPrev, uv);
+    vec4 posData = readParticlePos(idx);
+    vec4 velData = readParticleVel(idx);
     
-    vec3 position = prevPos.xyz;
-    vec3 velocity = prevVel.xyz;
+    vec3 pos = posData.xyz;
+    vec3 vel = velData.xyz;
+    float aux1 = velData.w;
     
-    // Calculate distance from center
-    float distance = length(position.xz);
+    // Apply forces and integrate velocity
+    vec3 totalForce = uGravity + calculateCustomForces(pos, vel, aux1, 0.0, uTimeSec);
     
-    // Orbital force - perpendicular to radius vector
-    vec3 center = vec3(0.0, 0.0, 0.0);
-    vec3 toCenter = center - position;
-    vec3 orbitalForce = cross(toCenter, vec3(0.0, 1.0, 0.0));
+    // Integrate velocity
+    vel += totalForce * uDeltaTime;
     
-    // Normalize and scale orbital force
-    if (length(orbitalForce) > 0.0) {
-        orbitalForce = normalize(orbitalForce) * (1.0 / (distance + 0.1));
+    // Apply damping
+    vel *= (1.0 - uDamping * uDeltaTime);
+    
+    // Limit speed
+    float speed = length(vel);
+    if (speed > uMaxSpeed) {
+        vel = normalize(vel) * uMaxSpeed;
     }
     
-    // Add some noise for variation
-    float noise = smoothNoise3D(position * 0.1 + uTimeSec * 0.1);
-    orbitalForce *= (0.8 + noise * 0.4);
+    gl_FragColor = vec4(vel, aux1);
+}
+`;
+
+// Position shader - updates position using velocity
+const orbitalPositionShader = /* glsl */ `
+precision highp float;
+
+uniform sampler2D uPositionsPrev;
+uniform sampler2D uVelocitiesPrev;
+uniform float uTimeSec;
+uniform float uDeltaTime;
+uniform float uParticleCount;
+
+varying vec2 vUv;
+
+int pixelIndex() {
+    float y = vUv.y * float(uParticleCount);
+    return int(floor(y));
+}
+
+vec4 readParticlePos(int k) {
+    float v = (float(k) + 0.5) / float(uParticleCount);
+    return texture2D(uPositionsPrev, vec2(0.5, v));
+}
+
+vec4 readParticleVel(int k) {
+    float v = (float(k) + 0.5) / float(uParticleCount);
+    return texture2D(uVelocitiesPrev, vec2(0.5, v));
+}
+
+void main() {
+    int idx = pixelIndex();
     
-    // Apply orbital force
-    velocity += orbitalForce * uDeltaTime * 2.0;
+    vec4 posData = readParticlePos(idx);
+    vec4 velData = readParticleVel(idx);
     
-    // Add centripetal force to maintain orbit
-    if (distance > 0.1) {
-        vec3 centripetal = normalize(toCenter) * (distance * 0.1);
-        velocity += centripetal * uDeltaTime;
-    }
+    vec3 pos = posData.xyz;
+    vec3 vel = velData.xyz;
+    float aux1 = posData.w;
     
-    // Add some damping
-    velocity *= 0.99;
+    // Update position using velocity
+    pos += vel * uDeltaTime;
     
-    // Limit velocity
-    float speed = length(velocity);
-    if (speed > 3.0) {
-        velocity = normalize(velocity) * 3.0;
-    }
-    
-    // Update position
-    position += velocity * uDeltaTime;
-    
-    // Keep particles roughly in a sphere
-    float sphereRadius = 4.0;
-    if (length(position) > sphereRadius) {
-        position = normalize(position) * sphereRadius;
-        velocity = reflect(velocity, normalize(position)) * 0.8;
-    }
-    
-    gl_FragColor = vec4(velocity, 0.0);
+    gl_FragColor = vec4(pos, aux1);
 }
 `;
 
@@ -105,13 +144,19 @@ export function ParticleOrbital() {
   const nodeNum = 60;
 
   const shaderConfig = useMemo(() => ({
-    velocityShader: orbitalVelocityShader,
+    velocityShader: orbitalVelocityShader, 
+    positionShader: orbitalPositionShader,
+    uniforms: {
+      uRadius: 3.0,
+      uOrbitSpeed: 1.2,
+      uCenter: new THREE.Vector3(0, 0, 0),
+    } 
   }), []);
 
   const particleConfig = useMemo(() => ({
-    gravity: new THREE.Vector3(0, 0, 0), // No gravity for orbital motion
-    damping: 0.01,
-    maxSpeed: 5.0,
+    gravity: new THREE.Vector3(0, -0.5, 0),
+    damping: 0.005,
+    maxSpeed: 8.0,
   }), []);
 
   // Create particle system
@@ -151,11 +196,22 @@ export function ParticleOrbital() {
   // Update particles and trails each frame
   useFrame((state, delta) => {
     const time = state.clock.elapsedTime;
+
+    // Update orbital parameters dynamically
+    particles.setUniform('uRadius', 2.5 + Math.sin(time * 0.3) * 0.5);
+    particles.setUniform('uOrbitSpeed', 1.0 + Math.cos(time * 0.4) * 0.3);
+
+    // Make the center point move in a small circle
+    const centerX = Math.sin(time * 0.2) * 0.5;
+    const centerZ = Math.cos(time * 0.2) * 0.5;
+    particles.setUniform('uCenter', new THREE.Vector3(centerX, 0, centerZ));
+
+    // Update particles
     particles.update(time, delta);
+
     // Update trails with particle positions
     trails.update(time, delta, particles.positionsTexture!);
   });
-
   return (
     <>
       {trails.nodeTexture && trails.trailTexture && materials.material && (

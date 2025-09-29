@@ -12,92 +12,122 @@ uniform sampler2D uPositionsPrev;
 uniform sampler2D uVelocitiesPrev;
 uniform float uTimeSec;
 uniform float uDeltaTime;
+uniform float uParticleCount; 
+
+// Default physics uniforms
+uniform vec3 uGravity;
+uniform float uDamping;
+uniform float uMaxSpeed;
+
+// Flow field parameters
 uniform float uSpeed;
+uniform float uNoiseScale;
+uniform float uTimeScale;
 
 varying vec2 vUv;
 
-// 2D noise function
-float noise(vec2 st) {
-    return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+int pixelIndex() {
+    float y = vUv.y * float(uParticleCount);
+    return int(floor(y));
 }
 
-// 2D smooth noise
-float smoothNoise(vec2 st) {
-    vec2 i = floor(st);
-    vec2 f = fract(st);
-    
-    float a = noise(i);
-    float b = noise(i + vec2(1.0, 0.0));
-    float c = noise(i + vec2(0.0, 1.0));
-    float d = noise(i + vec2(1.0, 1.0));
-    
-    vec2 u = f * f * (3.0 - 2.0 * f);
-    
-    return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+vec4 readParticlePos(int k) {
+    float v = (float(k) + 0.5) / float(uParticleCount);
+    return texture2D(uPositionsPrev, vec2(0.5, v));
 }
 
-// Flow field function
-vec2 flowField(vec2 pos, float time) {
-    float scale = 0.1;
-    vec2 st = pos * scale;
+vec4 readParticleVel(int k) {
+    float v = (float(k) + 0.5) / float(uParticleCount);
+    return texture2D(uVelocitiesPrev, vec2(0.5, v));
+}
+
+// 3D noise function
+float noise(vec3 p) {
+    return fract(sin(dot(p, vec3(12.9898, 78.233, 54.53))) * 43758.5453);
+}
+
+// Custom force calculation
+vec3 calculateCustomForces(vec3 pos, vec3 vel, float aux1, float aux2, float time) {
+    // Flow field force
+    vec3 flowField = vec3(
+        noise(pos * uNoiseScale + time * uTimeScale) - 0.5,
+        noise(pos * uNoiseScale + time * uTimeScale + vec3(100.0)) - 0.5,
+        noise(pos * uNoiseScale + time * uTimeScale + vec3(200.0)) - 0.5
+    ) * uSpeed;
     
-    // Create a time-varying flow field
-    float angle1 = smoothNoise(st + time * 0.1) * 6.28318;
-    float angle2 = smoothNoise(st * 2.0 + time * 0.05) * 6.28318;
-    
-    // Combine multiple noise layers
-    vec2 flow1 = vec2(cos(angle1), sin(angle1));
-    vec2 flow2 = vec2(cos(angle2), sin(angle2));
-    
-    // Blend the flows
-    float blend = smoothNoise(st * 0.5 + time * 0.02);
-    vec2 flow = mix(flow1, flow2, blend);
-    
-    // Add some curl
-    float curl = smoothNoise(st * 3.0 + time * 0.08) * 0.3;
-    flow = vec2(-flow.y + curl, flow.x + curl);
-    
-    return flow;
+    return flowField;
 }
 
 void main() {
-    vec2 uv = vUv;
+    int idx = pixelIndex();
     
-    // Read previous position and velocity
-    vec4 prevPos = texture2D(uPositionsPrev, uv);
-    vec4 prevVel = texture2D(uVelocitiesPrev, uv);
+    vec4 posData = readParticlePos(idx);
+    vec4 velData = readParticleVel(idx);
     
-    vec3 position = prevPos.xyz;
-    vec3 velocity = prevVel.xyz;
+    vec3 pos = posData.xyz;
+    vec3 vel = velData.xyz;
+    float aux1 = velData.w;
     
-    // Calculate flow field force at current position
-    vec2 flowForce = flowField(position.xz, uTimeSec);
+    // Apply forces and integrate velocity
+    vec3 totalForce = uGravity + calculateCustomForces(pos, vel, aux1, 0.0, uTimeSec);
     
-    // Apply flow field force to velocity
-    velocity.xz += vec2(flowForce.x, flowForce.y) * uSpeed * uDeltaTime;
+    // Integrate velocity
+    vel += totalForce * uDeltaTime;
     
-    // Add some damping
-    velocity *= 0.98;
+    // Apply damping
+    vel *= (1.0 - uDamping * uDeltaTime);
     
-    // Limit velocity
-    float speed = length(velocity);
-    if (speed > 2.0) {
-        velocity = normalize(velocity) * 2.0;
+    // Limit speed
+    float speed = length(vel);
+    if (speed > uMaxSpeed) {
+        vel = normalize(vel) * uMaxSpeed;
     }
     
-    // Update position
-    position += velocity * uDeltaTime;
+    gl_FragColor = vec4(vel, aux1);
+}
+`;
+
+// Position shader - updates position using velocity
+const flowFieldPositionShader = /* glsl */ `
+precision highp float;
+
+uniform sampler2D uPositionsPrev;
+uniform sampler2D uVelocitiesPrev;
+uniform float uTimeSec;
+uniform float uDeltaTime;
+uniform float uParticleCount;
+
+varying vec2 vUv;
+
+int pixelIndex() {
+    float y = vUv.y * float(uParticleCount);
+    return int(floor(y));
+}
+
+vec4 readParticlePos(int k) {
+    float v = (float(k) + 0.5) / float(uParticleCount);
+    return texture2D(uPositionsPrev, vec2(0.5, v));
+}
+
+vec4 readParticleVel(int k) {
+    float v = (float(k) + 0.5) / float(uParticleCount);
+    return texture2D(uVelocitiesPrev, vec2(0.5, v));
+}
+
+void main() {
+    int idx = pixelIndex();
     
-    // Wrap around boundaries
-    if (position.x > 5.0) position.x = -5.0;
-    if (position.x < -5.0) position.x = 5.0;
-    if (position.z > 5.0) position.z = -5.0;
-    if (position.z < -5.0) position.z = 5.0;
+    vec4 posData = readParticlePos(idx);
+    vec4 velData = readParticleVel(idx);
     
-    // Keep Y position relatively stable
-    position.y = sin(position.x * 0.5) * 0.5 + cos(position.z * 0.3) * 0.3;
+    vec3 pos = posData.xyz;
+    vec3 vel = velData.xyz;
+    float aux1 = posData.w;
     
-    gl_FragColor = vec4(velocity, 0.0);
+    // Update position using velocity
+    pos += vel * uDeltaTime;
+    
+    gl_FragColor = vec4(pos, aux1);
 }
 `;
 
@@ -108,12 +138,18 @@ export default function ParticleFlowField() {
   
 
   const shaderConfig = useMemo(() => ({
+    positionShader: flowFieldPositionShader,
     velocityShader: flowFieldVelocityShader,
+    uniforms: {
+      uSpeed: 1.5,
+      uNoiseScale: 0.8,
+      uTimeScale: 0.3,
+    }
   }), []);
 
   const particleConfig = useMemo(() => ({
-    gravity: new THREE.Vector3(0, 0, 0), // No gravity in flow field
-    damping: 0.02,
+    gravity: new THREE.Vector3(0, -0.2, 0),
+    damping: 0.01,
     maxSpeed: 5.0,
   }), []);
 
@@ -155,6 +191,7 @@ export default function ParticleFlowField() {
   useFrame((state, delta) => {
     const time = state.clock.elapsedTime;
     particles.setUniform('uSpeed', 5.0 + Math.sin(time * 0.5) * 0.5);
+    particles.setUniform('uNoiseScale', 0.6 + Math.cos(time * 0.3) * 0.3);
     particles.update(time, delta);
     trails.update(time, delta, particles.positionsTexture!);
   });
