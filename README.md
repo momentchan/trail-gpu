@@ -5,11 +5,11 @@ A high-performance GPU-based trail rendering system for Three.js, designed for c
 ## Features
 
 - **GPU-accelerated**: All trail calculations performed on GPU using compute shaders
-- **Circular buffer**: Efficient memory usage with configurable trail lengths
-- **Real-time updates**: Smooth trail generation with distance-based advancement
+- **Modular architecture**: Decoupled geometry and material providers for maximum flexibility
+- **Multiple geometry types**: Support for quad ribbons and 3D tubes
+- **Custom shaders**: Easy integration of custom vertex and fragment shaders
+- **React integration**: Simple-to-use React components and hooks
 - **TypeScript support**: Full type safety and IntelliSense support
-- **React integration**: Easy-to-use React components and hooks
-- **Configurable**: Extensive customization options for appearance and behavior
 - **Performance optimized**: Minimal draw calls and efficient memory management
 
 ## Quick Start
@@ -17,44 +17,56 @@ A high-performance GPU-based trail rendering system for Three.js, designed for c
 ### Basic Usage
 
 ```tsx
-import { ExampleScene } from './lib/trail-gpu';
+import { useParticles, useTrails, useRibbonGeometry, useRibbonMaterials, Ribbon } from './lib/trail-gpu';
 
-function App() {
-  return (
-    <Canvas>
-      <ExampleScene />
-    </Canvas>
-  );
-}
-```
+function BasicTrailScene() {
+  const trailNum = 100;
+  const nodeNum = 50;
 
-### Custom Configuration
+  // Create particle system
+  const particles = useParticles({
+    count: trailNum,
+    config: { gravity: new THREE.Vector3(0, -1, 0), damping: 0.02 },
+  });
 
-```tsx
-import { useTrailSystemWithFrame, Ribbon } from './lib/trail-gpu';
+  // Create trail system
+  const trails = useTrails({
+    nodesPerTrail: nodeNum,
+    trailsNum: trailNum,
+    updateDistanceMin: 0.05,
+  });
 
-function CustomTrailScene() {
-  const { trails } = useTrailSystemWithFrame({
-    trailConfig: {
-      nodesPerTrail: 100,
-      trailsNum: 200,
-      updateDistanceMin: 0.02,
+  // Create geometry
+  const geometry = useRibbonGeometry({
+    geometryType: 'quad',
+    geometryConfig: { nodes: nodeNum, trails: trailNum, width: 1.0 },
+  });
+
+  // Create materials
+  const materials = useRibbonMaterials({
+    materialType: 'standard',
+    materialConfig: {
+      nodeTex: trails.nodeTexture!,
+      trailTex: trails.trailTexture!,
+      baseWidth: 0.08,
+      nodes: nodeNum,
+      trails: trailNum,
+      color: '#8ec5ff',
     },
-    particleConfig: {
-      speed: 1.0,
-      noiseScale: 1.2,
-      timeScale: 0.5,
-    },
+  });
+
+  // Update each frame
+  useFrame((state, delta) => {
+    particles.update(state.clock.elapsedTime, delta);
+    trails.update(state.clock.elapsedTime, delta, particles.positionsTexture!);
   });
 
   return (
     <Ribbon
-      nodeTex={trails.nodeTexture}
-      trailTex={trails.trailTexture}
-      nodes={trails.nodes}
-      trails={trails.trails}
-      baseWidth={0.1}
-      color="#ff6b6b"
+      geometry={geometry}
+      material={materials.material}
+      depthMaterial={materials.depthMaterial}
+      trails={trailNum}
     />
   );
 }
@@ -62,101 +74,189 @@ function CustomTrailScene() {
 
 ## API Reference
 
-### Core Classes
+### React Hooks
 
-#### `GPUTrailParticles`
+#### `useParticles(config)`
 
-Manages particle positions using GPU computation.
+Creates and manages a particle system.
 
 ```tsx
-const particles = new GPUTrailParticles(
+const particles = useParticles({
   count: number,
-  updateFragmentShader: string,
-  config?: Partial<ParticleConfig>,
-  initialPositions?: Float32Array
-);
+  config?: ParticleConfig,
+  shaderConfig?: ParticleShaderConfig,
+});
 ```
 
-**Methods:**
-- `attachRenderer(renderer: WebGLRenderer)`: Attach a renderer
-- `stepUpdate(timeSec: number, deltaTime: number)`: Update particle positions
-- `dispose()`: Clean up resources
+**Returns:**
+- `positionsTexture`: Data texture containing particle positions
+- `update(time, delta)`: Function to update particle positions
+- `setUniform(name, value)`: Function to update shader uniforms
 
-#### `GPUTrailsPass`
+#### `useTrails(config)`
 
-Manages trail data and node positions.
+Creates and manages a trail system.
 
 ```tsx
-const trails = new GPUTrailsPass(
+const trails = useTrails({
   nodesPerTrail: number,
   trailsNum: number,
-  calcInputHeadFragmentShader: string,
-  calcInputWriteNodeFragmentShader: string,
-  config?: Partial<TrailConfig>
-);
+  updateDistanceMin: number,
+  shaderPack?: ShaderPack,
+});
 ```
 
-**Methods:**
-- `attachRenderer(renderer: WebGLRenderer)`: Attach a renderer
-- `writeInputFromTexture(texture: Texture)`: Write particle positions to trail input
-- `stepCalcInput(timeSec: number, updateDistanceMin?: number)`: Update trail data
-- `dispose()`: Clean up resources
+**Returns:**
+- `nodeTexture`: Texture containing trail node positions
+- `trailTexture`: Texture containing trail state data
+- `update(time, delta, positionsTexture)`: Function to update trails
+
+#### `useRibbonGeometry(config)`
+
+Creates geometry for ribbon rendering.
+
+```tsx
+const geometry = useRibbonGeometry({
+  geometryType: 'quad' | 'tube',
+  geometryConfig: QuadGeometryConfig | TubeGeometryConfig,
+});
+```
+
+#### `useRibbonMaterials(config)`
+
+Creates materials for ribbon rendering.
+
+```tsx
+const materials = useRibbonMaterials({
+  materialType: 'standard' | 'custom-shader' | 'tube',
+  materialConfig: MaterialConfig,
+});
+```
+
+**Returns:**
+- `material`: Main rendering material
+- `depthMaterial`: Depth-only material for shadows
 
 ### React Components
 
 #### `Ribbon`
 
-Renders trails as 3D ribbons.
+Renders trails using pre-created geometry and materials.
 
 ```tsx
 <Ribbon
-  nodeTex={THREE.Texture}      // Node position texture
-  trailTex={THREE.Texture}     // Trail state texture
-  nodes={number}               // Number of nodes per trail
-  trails={number}              // Number of trails
-  baseWidth={number}           // Ribbon width (default: 0.08)
-  color={string}               // Ribbon color (default: '#8ec5ff')
-  wireframe={boolean}          // Wireframe mode (default: true)
-  transparent={boolean}        // Transparency (default: true)
+  geometry={THREE.InstancedBufferGeometry}  // Geometry from useRibbonGeometry
+  material={THREE.Material | null}          // Material from useRibbonMaterials
+  depthMaterial={THREE.Material | null}     // Depth material from useRibbonMaterials
+  trails={number}                           // Number of trails
+  receiveShadow={boolean}                   // Receive shadows (default: true)
+  castShadow={boolean}                      // Cast shadows (default: true)
+  frustumCulled={boolean}                   // Frustum culling (default: false)
 />
 ```
 
-#### `DebugPoints`
+#### `ParticleDebugPoints`
 
 Visualizes particle positions as points.
 
 ```tsx
-<DebugPoints
+<ParticleDebugPoints
   texture={THREE.DataTexture}  // Particle position texture
   count={number}               // Number of particles
   size={number}                // Point size (default: 0.07)
   color={string}               // Point color (default: 'red')
-  headRef={RefObject<number>}  // Optional: circular buffer head
-  validRef={RefObject<number>} // Optional: circular buffer valid count
 />
 ```
 
-### Hooks
+### Geometry Providers
 
-#### `useTrailSystem(options?)`
-
-Creates and manages a trail system.
+#### Quad Geometry
 
 ```tsx
-const { particles, trails, updateSystem, dispose } = useTrailSystem({
-  trailConfig?: Partial<TrailConfig>,
-  particleConfig?: Partial<ParticleConfig>,
-  initialParticlePositions?: Float32Array,
+const geometry = useRibbonGeometry({
+  geometryType: 'quad',
+  geometryConfig: {
+    nodes: number,      // Number of nodes per trail
+    trails: number,     // Number of trails
+    width?: number,     // Ribbon width (default: 1.0)
+  },
 });
 ```
 
-#### `useTrailSystemWithFrame(options?)`
+#### Tube Geometry
 
-Same as `useTrailSystem` but automatically updates each frame.
+```tsx
+const geometry = useRibbonGeometry({
+  geometryType: 'tube',
+  geometryConfig: {
+    nodes: number,        // Number of nodes per trail
+    trails: number,       // Number of trails
+    segments?: number,    // Radial segments (default: 8)
+    radius?: number,      // Tube radius (default: 0.04)
+    capStart?: boolean,   // Add cap at start (default: false)
+    capEnd?: boolean,     // Add cap at end (default: false)
+  },
+});
+```
 
-### Configuration Types
+### Material Providers
 
-#### `TrailConfig`
+#### Standard Material
+
+```tsx
+const materials = useRibbonMaterials({
+  materialType: 'standard',
+  materialConfig: {
+    nodeTex: THREE.Texture,    // Trail node texture
+    trailTex: THREE.Texture,   // Trail state texture
+    baseWidth: number,         // Base width/radius
+    nodes: number,             // Number of nodes
+    trails: number,            // Number of trails
+    color: string,             // Base color
+    materialProps?: object,    // Standard Three.js material properties
+  },
+});
+```
+
+#### Custom Shader Material
+
+```tsx
+const materials = useRibbonMaterials({
+  materialType: 'custom-shader',
+  materialConfig: {
+    vertexShader: string,      // Custom vertex shader
+    fragmentShader: string,    // Custom fragment shader
+    uniforms: object,          // Custom uniforms
+    nodeTex: THREE.Texture,    // Trail node texture
+    trailTex: THREE.Texture,   // Trail state texture
+    baseWidth: number,         // Base width/radius
+    nodes: number,             // Number of nodes
+    trails: number,            // Number of trails
+    color: string,             // Base color
+  },
+});
+```
+
+## Examples
+
+The system includes several example implementations:
+
+- `ParticleFlowField`: Particles following a flow field
+- `ParticleOrbital`: Particles in orbital motion
+- `ParticleBasic`: Basic velocity/position integration
+- `RibbonQuadDemo`: Quad geometry variations
+- `RibbonTubeDemo`: 3D tube geometry
+
+```tsx
+import { ParticleFlowField, ParticleOrbital, RibbonQuadDemo, RibbonTubeDemo } from './lib/trail-gpu';
+
+// Use any of the examples directly
+<ParticleFlowField />
+```
+
+## Configuration Types
+
+### `TrailConfig`
 
 ```tsx
 interface TrailConfig {

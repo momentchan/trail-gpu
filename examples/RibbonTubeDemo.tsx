@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useParticles, useTrails, Ribbon, useRibbonGeometry, useRibbonMaterials } from '../index';
 import { DistanceShaderPack } from '../shaders/packs/distance';
 
-export function RibbonTubeExample() {
+export function RibbonTubeDemo() {
     const trailNum = 20;
     const nodeNum = 50;
 
@@ -51,9 +51,6 @@ export function RibbonTubeExample() {
             trails: trailNum, 
             color: '#ff6b6b',
             segments: 16, // Pass the segment count to the material
-            materialProps: {
-                side: THREE.DoubleSide,
-            },
         },
     });
 

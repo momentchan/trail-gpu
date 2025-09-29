@@ -4,8 +4,6 @@ import * as THREE from 'three';
 export interface GeometryProvider {
   name: string;
   createGeometry(config: any): THREE.InstancedBufferGeometry;
-  getRequiredAttributes(): string[];
-  getShaderDefines(): Record<string, string | number>;
 }
 
 // Configuration for quad geometry

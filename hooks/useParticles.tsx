@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { useMemo, useRef, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import { ParticleCompute } from '../core/compute/ParticleCompute';
-import { RenderTargetPool } from '../core/compute/RenderTargetPool';
+import { RenderTargetPool } from '../core/utils/RenderTargetPool';
 import { ParticleConfig, ParticleShaderConfig, CustomUniforms } from '../types';
 
 export type UseParticlesConfig = {

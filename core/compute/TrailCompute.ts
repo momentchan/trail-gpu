@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { RenderTargetPool } from './RenderTargetPool';
+import { RenderTargetPool } from '../utils/RenderTargetPool';
 import { TrailAdvancePass } from './TrailAdvancePass';
 import { TrailHeadPass } from './TrailHeadPass';
 import { TrailWriteNodePass } from './TrailWriteNodePass';

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { useMemo, useRef, useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
 import { ShaderPack } from '../core/spec/constants';
-import { RenderTargetPool } from '../core/compute/RenderTargetPool';
+import { RenderTargetPool } from '../core/utils/RenderTargetPool';
 import { TrailCompute } from '../core/compute/TrailCompute';
 
 export type UseTrailSystemConfig = {

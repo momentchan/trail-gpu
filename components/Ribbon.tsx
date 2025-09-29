@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { RibbonProps, TrailGPUError } from './types';
+import { RibbonProps, TrailGPUError } from '../types';
 
 export function Ribbon({
     geometry,

@@ -70,14 +70,4 @@ export const QuadGeometryProvider: GeometryProvider = {
     return geometry;
   },
   
-  getRequiredAttributes(): string[] {
-    return ['aSeg', 'aSide', 'aTrail'];
-  },
-  
-  getShaderDefines(): Record<string, string | number> {
-    return {
-      GEOMETRY_TYPE_QUAD: 1,
-      VERTICES_PER_SEGMENT: 2
-    };
-  }
 };

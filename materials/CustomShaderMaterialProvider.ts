@@ -49,9 +49,6 @@ export const CustomShaderMaterialProvider: MaterialProvider = {
     });
   },
   
-  getRequiredUniforms(): Record<string, any> {
-    return {};
-  },
   
   updateUniforms(material: THREE.Material, uniforms: any): void {
     if ((material as any).uniforms) {

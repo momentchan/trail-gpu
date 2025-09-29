@@ -28,80 +28,62 @@ const customVertexShader = `
   varying vec2 vUv;
   
   vec4 readNode(int node, int trail) {
-      float u = (float(node) + 0.5) / float(uNodes);
-      float v = (float(trail) + 0.5) / float(uTrails);
-      return texture2D(uNodeTex, vec2(u, v));
+    float u = (float(node) + 0.5) / float(uNodes);
+    float v = (float(trail) + 0.5) / float(uTrails);
+    return texture2D(uNodeTex, vec2(u, v));
   }
   
   ivec2 readHeadValid(int trail) {
-      float v = (float(trail) + 0.5) / float(uTrails);
-      vec4 trailData = texture2D(uTrailTex, vec2(0.5, v));
-      int head = int(floor(trailData.x + 0.5));
-      int valid = int(floor(trailData.y + 0.5));
-      return ivec2(head, valid);
+    float v = (float(trail) + 0.5) / float(uTrails);
+    vec4 trailData = texture2D(uTrailTex, vec2(0.5, v));
+    int head = int(floor(trailData.x + 0.5));
+    int valid = int(floor(trailData.y + 0.5));
+    return ivec2(head, valid);
   }
   
   int logicalToPhysical(int i, int head, int valid, int nodes) {
-      int start = (head - valid + 1 + nodes) % nodes;
-      return (start + i) % nodes;
+    int start = (head - valid + 1 + nodes) % nodes;
+    return (start + i) % nodes;
   }
   
   vec3 readPosByLogical(int i, int head, int valid, int nodes, int trail) {
-      if (i < 0) i = 0;
-      if (i >= valid) {
-          return readNode(head, trail).xyz;
-      }
-      int k = logicalToPhysical(i, head, valid, nodes);
-      return readNode(k, trail).xyz;
+    if (i < 0) i = 0;
+    if (i >= valid) {
+      return readNode(head, trail).xyz;
+    }
+    int k = logicalToPhysical(i, head, valid, nodes);
+    return readNode(k, trail).xyz;
   }
   
   void main() {
-      int trail = int(aTrail);
-      int node = int(aSeg);
-      
-      ivec2 hv = readHeadValid(trail);
-      int head = hv.x;
-      int valid = hv.y;
-      
-      vec3 p = readPosByLogical(node, head, valid, uNodes, trail);
-      vec3 pPrev = readPosByLogical(node - 1, head, valid, uNodes, trail);
-      vec3 pNext = readPosByLogical(node + 1, head, valid, uNodes, trail);
-      
-      vec3 tangent;
-      if (valid < 2) {
-          tangent = vec3(1.0, 0.0, 0.0);
-      } else if (node <= 0) {
-          tangent = normalize(pNext - p);
-      } else if (node >= valid - 1) {
-          tangent = normalize(p - pPrev);
-      } else {
-          tangent = normalize(pNext - pPrev);
-      }
-      
-      vec3 viewDir = normalize(uCameraPos - p);
-      vec3 side = normalize(cross(tangent, viewDir));
-      
-      // Add wave effect
-      float t = float(node) / float(valid - 1);
-      float wave = sin(t * 10.0 + uTime * 2.0) * uWaveAmplitude;
-      
-      float width = uBaseWidth * (1.0 + wave);
-      vec3 pos = p + side * width * aSide;
-      
-      vSeg = float(node);
-      vTrail = float(trail);
-      vSide = aSide;
-      vWorldPos = pos;
-      vUv = uv;
-      
-      mat4 invModel = inverse(modelMatrix);
-      mat3 invModel3 = mat3(invModel);
-      
-      vec3 posOS = (invModel * vec4(pos, 1.0)).xyz;
-      vec3 normalOS = normalize(transpose(invModel3) * normalize(cross(side, tangent)));
-      
-      csm_Position = posOS;
-      csm_Normal = normalOS;
+    int trail = int(aTrail);
+    int node = int(aSeg);
+    float side = aSide;
+    
+    ivec2 hv = readHeadValid(trail);
+    int head = hv.x;
+    int valid = hv.y;
+    
+    vec3 p = readPosByLogical(node, head, valid, uNodes, trail);
+    vec3 pPrev = readPosByLogical(node - 1, head, valid, uNodes, trail);
+    vec3 pNext = readPosByLogical(node + 1, head, valid, uNodes, trail);
+    
+    vec3 tangent = normalize(pNext - pPrev);
+    vec3 viewDir = normalize(uCameraPos - p);
+    vec3 sideDir = normalize(cross(tangent, viewDir));
+    
+    // Add wave effect
+    float wave = sin(uTime * 2.0 + float(node) * 0.5 + float(trail) * 0.1) * uWaveAmplitude;
+    
+    vec3 pos = p + sideDir * side * uBaseWidth * (1.0 + wave);
+    
+    vSeg = float(node);
+    vTrail = float(trail);
+    vSide = side;
+    vWorldPos = pos;
+    vUv = uv;
+    
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
 `;
 
@@ -117,20 +99,27 @@ const customFragmentShader = `
   varying float vSeg;
   varying float vTrail;
   varying float vSide;
+  varying vec3 vWorldPos;
   varying vec2 vUv;
   
   void main() {
-      // Create pulsing glow effect
-      float pulse = sin(uTime * 3.0 + vSeg * 0.1) * 0.5 + 0.5;
-      vec3 glow = uGlowColor * pulse * uGlowIntensity;
-      vec3 color = uColor + glow;
-      
-      csm_DiffuseColor = vec4(color, 1.0);
+    // Base color with trail variation
+    vec3 color = uColor;
+    
+    // Add glow effect
+    float glow = sin(uTime * 3.0 + vSeg * 0.2) * 0.5 + 0.5;
+    color = mix(color, uGlowColor, glow * uGlowIntensity);
+    
+    // Add side variation
+    float sideGlow = abs(vSide) * 0.3;
+    color += sideGlow * uGlowColor;
+    
+    gl_FragColor = vec4(color, 1.0);
   }
 `;
 
-export function RibbonQuadExample() {
-    const trailNum = 200;
+export function RibbonQuadDemo() {
+    const trailNum = 100;
     const nodeNum = 50;
 
     const particleConfig = useMemo(() => ({
@@ -138,7 +127,7 @@ export function RibbonQuadExample() {
         damping: 0.02,
         maxSpeed: 5.0,
     }), []);
-    
+
     // Create particle system
     const particles = useParticles({
         count: trailNum,
@@ -264,7 +253,7 @@ export function RibbonQuadExample() {
                 </group>
             )}
 
-            {/* Example 2: Standard Ribbon with explicit geometry type */}
+            {/* Example 2: Explicit Quad with different color */}
             {trails.nodeTexture && trails.trailTexture && materials2.material && (
                 <group position={[0, 0, 0]}>
                     <Ribbon
@@ -276,7 +265,7 @@ export function RibbonQuadExample() {
                 </group>
             )}
 
-            {/* Example 3: Standard Ribbon with custom material properties */}
+            {/* Example 3: Custom Material Properties */}
             {trails.nodeTexture && trails.trailTexture && materials3.material && (
                 <group position={[2, 0, 0]}>
                     <Ribbon
@@ -288,9 +277,9 @@ export function RibbonQuadExample() {
                 </group>
             )}
 
-            {/* Example 4: Custom Shader Ribbon */}
+            {/* Example 4: Custom Shader */}
             {trails.nodeTexture && trails.trailTexture && materials4.material && (
-                <group position={[0, 2, 0]}>
+                <group position={[4, 0, 0]}>
                     <Ribbon
                         geometry={geometry4}
                         material={materials4.material}

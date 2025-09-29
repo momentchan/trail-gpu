@@ -5,7 +5,6 @@ export interface MaterialProvider {
   name: string;
   createMaterial(config: any): THREE.Material;
   createDepthMaterial(config: any): THREE.Material;
-  getRequiredUniforms(): Record<string, any>;
   updateUniforms(material: THREE.Material, uniforms: any): void;
 }
 

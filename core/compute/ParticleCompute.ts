@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { RenderTargetPool } from './RenderTargetPool';
+import { RenderTargetPool } from '../utils/RenderTargetPool';
 import { Blitter } from '../utils/Blit';
 import { assertPositive, validateRenderer, TrailGPUError } from '../spec/validators';
 import { makeRTParams } from '../spec/constants';

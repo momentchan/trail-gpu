@@ -1,11 +1,9 @@
-// Geometry hooks
+// Geometry and Material hooks
 export { useRibbonGeometry } from './useRibbonGeometry';
-export type { UseRibbonGeometryConfig } from './useRibbonGeometry';
-
-// Material hooks
 export { useRibbonMaterials } from './useRibbonMaterials';
+export type { UseRibbonGeometryConfig } from './useRibbonGeometry';
 export type { UseRibbonMaterialsConfig } from './useRibbonMaterials';
 
-// Re-export existing hooks
+// Core hooks
 export { useParticles } from './useParticles';
 export { useTrails } from './useTrails';

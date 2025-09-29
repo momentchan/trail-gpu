@@ -71,20 +71,6 @@ export const TubeMaterialProvider: MaterialProvider = {
     });
   },
   
-  getRequiredUniforms(): Record<string, any> {
-    return {
-      uNodeTex: null,
-      uTrailTex: null,
-      uBaseWidth: 0.08,
-      uNodes: 0,
-      uTrails: 0,
-      uSegments: 8,
-      uCameraPos: new THREE.Vector3(),
-      uColor: new THREE.Color('#8ec5ff'),
-      uTime: 0,
-      uDebug: 0,
-    };
-  },
   
   updateUniforms(material: THREE.Material, uniforms: any): void {
     if ((material as any).uniforms) {

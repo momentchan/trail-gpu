@@ -158,15 +158,4 @@ export const TubeGeometryProvider: GeometryProvider = {
     return geometry;
   },
   
-  getRequiredAttributes(): string[] {
-    return ['aSeg', 'aRadial', 'aNormal', 'aTrail'];
-  },
-  
-  getShaderDefines(): Record<string, string | number> {
-    return {
-      GEOMETRY_TYPE_TUBE: 1,
-      VERTICES_PER_SEGMENT: 8, // configurable
-      TUBE_SEGMENTS: 8
-    };
-  }
 };

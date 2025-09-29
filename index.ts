@@ -1,12 +1,8 @@
 // Trail GPU System - Main Export File
 // A high-performance GPU-based trail rendering system for Three.js
 
-// Core Classes
-export { ParticleCompute } from './core/compute/ParticleCompute';
-
 // React Components
-export { Ribbon } from './Ribbon';
-export { ParticleDebugPoints } from './ParticleDebugPoints';
+export { Ribbon, ParticleDebugPoints } from './components';
 
 // Geometry Providers
 export { geometryProviders, QuadGeometryProvider, TubeGeometryProvider } from './geometry';
@@ -67,7 +63,6 @@ export {
 
 // Shaders
 export {
-  velPosTemplateFrag,
   calcInputHeadFrag,
   calcInputWriteNodeFrag,
   ribbonVertexShader,
@@ -78,11 +73,8 @@ export {
 } from './shaders';
 
 // Examples
-export { default as FlowFieldExample } from './examples/FlowFieldExample';
-export { OrbitalExample } from './examples/OrbitalExample';
-export { VelPosExample } from './examples/VelPosExample';
-export { RibbonQuadExample } from './examples/RibbonQuadExample';
-export { RibbonTubeExample } from './examples/RibbonTubeExample';
-
-// Re-export commonly used Three.js types for convenience
-export type { Texture, WebGLRenderTarget, ShaderMaterial } from 'three';
+export { default as ParticleFlowField } from './examples/ParticleFlowField';
+export { ParticleOrbital } from './examples/ParticleOrbital';
+export { ParticleBasic } from './examples/ParticleBasic';
+export { RibbonQuadDemo } from './examples/RibbonQuadDemo';
+export { RibbonTubeDemo } from './examples/RibbonTubeDemo';

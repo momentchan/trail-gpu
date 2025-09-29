@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { useParticles, useTrails, Ribbon, ParticleDebugPoints, useRibbonGeometry, useRibbonMaterials } from '../index';
 import { DistanceShaderPack } from '../shaders/packs/distance';
 
-export function VelPosExample() {
+export function ParticleBasic() {
     // Create particle system with default velocity/position shaders
 
     const config = useMemo(() => ({
@@ -13,6 +13,7 @@ export function VelPosExample() {
         maxSpeed: 8.0,
     }), []);
 
+    // Create particle system
     const particles = useParticles({
         count: 500,
         config: config,
@@ -26,11 +27,9 @@ export function VelPosExample() {
         shaderPack: DistanceShaderPack,
     });
 
-    // Update particles each frame
+    // Update particles and trails each frame
     useFrame((state, delta) => {
         const time = state.clock.elapsedTime;
-        
-        // Update particles with default gravity
         particles.update(time, delta);
         trails.update(time, delta, particles.positionsTexture!);
     });
@@ -64,12 +63,13 @@ export function VelPosExample() {
                     trails={500}
                 />
             )}
-
+            
+            {/* Debug particles */}
             <ParticleDebugPoints
                 particleTexture={particles.positionsTexture!}
                 count={500}
                 size={0.05}
-                color="#8ec5ff"
+                color="#ff0000"
             />
         </>
     );
