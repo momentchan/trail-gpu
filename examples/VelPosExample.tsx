@@ -39,8 +39,6 @@ export function VelPosExample() {
     const geometry = useRibbonGeometry({
         geometryType: 'quad',
         geometryConfig: { nodes: 60, trails: 500, width: 1.0 },
-        nodes: 60,
-        trails: 500,
     });
 
     // Create materials
@@ -54,12 +52,6 @@ export function VelPosExample() {
             trails: 500, 
             color: '#8ec5ff' 
         },
-        nodeTex: trails.nodeTexture!,
-        trailTex: trails.trailTexture!,
-        baseWidth: 0.08,
-        nodes: 60,
-        trails: 500,
-        color: '#8ec5ff',
     });
 
     return (

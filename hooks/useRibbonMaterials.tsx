@@ -6,25 +6,11 @@ import { materialProviders, MaterialType, MaterialConfig } from '../materials';
 export interface UseRibbonMaterialsConfig {
   materialType: MaterialType;
   materialConfig: MaterialConfig;
-  nodeTex: THREE.Texture;
-  trailTex: THREE.Texture;
-  baseWidth: number;
-  nodes: number;
-  trails: number;
-  color: string;
-  materialProps?: Partial<THREE.MeshStandardMaterialParameters>;
 }
 
 export function useRibbonMaterials({
   materialType,
   materialConfig,
-  nodeTex,
-  trailTex,
-  baseWidth,
-  nodes,
-  trails,
-  color,
-  materialProps = {},
 }: UseRibbonMaterialsConfig): {
   material: THREE.Material | null;
   depthMaterial: THREE.Material | null;
@@ -33,37 +19,19 @@ export function useRibbonMaterials({
   
   const { material, depthMaterial } = useMemo(() => {
     // Return null if textures aren't ready yet
-    if (!nodeTex || !trailTex) {
+    if (!materialConfig.nodeTex || !materialConfig.trailTex) {
       return {
         material: null,
         depthMaterial: null,
       };
     }
     
-    const config = {
-      ...materialConfig,
-      nodeTex,
-      trailTex,
-      baseWidth,
-      nodes,
-      trails,
-      color,
-      materialProps,
-    };
-    
     return {
-      material: provider.createMaterial(config),
-      depthMaterial: provider.createDepthMaterial(config),
+      material: provider.createMaterial(materialConfig),
+      depthMaterial: provider.createDepthMaterial(materialConfig),
     };
   }, [
     provider,
-    nodeTex,
-    trailTex,
-    baseWidth,
-    nodes,
-    trails,
-    color,
-    materialProps,
     materialConfig,
   ]);
 

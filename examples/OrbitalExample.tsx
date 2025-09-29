@@ -194,8 +194,6 @@ export function OrbitalExample() {
   const geometry = useRibbonGeometry({
     geometryType: 'quad',
     geometryConfig: { nodes: 60, trails: 500, width: 1.0 },
-    nodes: 60,
-    trails: 500,
   });
 
   // Create materials
@@ -209,12 +207,6 @@ export function OrbitalExample() {
       trails: 500, 
       color: '#ff6b6b' 
     },
-    nodeTex: trails.nodeTexture!,
-    trailTex: trails.trailTexture!,
-    baseWidth: 0.01,
-    nodes: 60,
-    trails: 500,
-    color: '#ff6b6b',
   });
 
   return (

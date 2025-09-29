@@ -30,5 +30,10 @@ export interface CustomShaderMaterialConfig extends StandardMaterialConfig {
   uniforms: { [key: string]: { value: any } };
 }
 
+// Configuration for tube material
+export interface TubeMaterialConfig extends StandardMaterialConfig {
+  segments?: number;
+}
+
 // Union type for all material configs
-export type MaterialConfig = StandardMaterialConfig | CustomShaderMaterialConfig;
+export type MaterialConfig = StandardMaterialConfig | CustomShaderMaterialConfig | TubeMaterialConfig;

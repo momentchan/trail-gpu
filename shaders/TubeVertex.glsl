@@ -1,4 +1,4 @@
-// Tube Vertex Shader
+// Tube Vertex Shader - Simplified
 // Renders trails as 3D tubes with proper geometry and lighting
 
 precision highp float;
@@ -9,6 +9,7 @@ uniform sampler2D uTrailTex;         // Trail state (1xM: head, valid, advance, 
 uniform float uBaseWidth;            // Base radius of the tube
 uniform int uNodes;                  // Number of nodes per trail
 uniform int uTrails;                 // Number of trails
+uniform int uSegments;               // Number of radial segments
 uniform vec3 uCameraPos;             // Camera position
 
 // Attributes
@@ -56,7 +57,6 @@ int logicalToPhysical(int i, int head, int valid, int nodes) {
 
 /**
  * Reads position by logical index
- * Handles edge cases for beginning and end of trail
  */
 vec3 readPosByLogical(int i, int head, int valid, int nodes, int trail) {
     if (i < 0) i = 0;
@@ -72,47 +72,6 @@ void main() {
     int node = int(aSeg);
     float radial = aRadial;
     
-    // Handle special cases for caps
-    if (node < 0) {
-        // This is a cap vertex - use simple positioning for now
-        vec3 centerPos = vec3(0.0);
-        vec3 normal = aNormal;
-        
-        if (node == -1) {
-            // Start cap - use first valid position
-            ivec2 hv = readHeadValid(trail);
-            centerPos = readPosByLogical(0, hv.x, hv.y, uNodes, trail);
-        } else if (node == -2) {
-            // End cap - use last valid position
-            ivec2 hv = readHeadValid(trail);
-            centerPos = readPosByLogical(hv.y - 1, hv.x, hv.y, uNodes, trail);
-        }
-        
-        // Simple cap positioning
-        float radius = uBaseWidth;
-        float angle = (radial / 8.0) * 2.0 * 3.14159265359;
-        vec3 offset = vec3(cos(angle) * radius, 0.0, sin(angle) * radius);
-        vec3 pos = centerPos + offset;
-        
-        vSeg = float(node);
-        vTrail = float(trail);
-        vRadial = radial;
-        vWorldPos = pos;
-        vTubeNormal = normal;
-        vUv = uv;
-        
-        mat4 invModel = inverse(modelMatrix);
-        mat3 invModel3 = mat3(invModel);
-        
-        vec3 posOS = (invModel * vec4(pos, 1.0)).xyz;
-        vec3 normalOS = normalize(transpose(invModel3) * normal);
-        
-        csm_Position = posOS;
-        csm_Normal = normalOS;
-        return;
-    }
-    
-    // Regular tube vertex
     // Read trail state
     ivec2 hv = readHeadValid(trail);
     int head = hv.x;
@@ -121,28 +80,40 @@ void main() {
     // Get current position
     vec3 p = readPosByLogical(node, head, valid, uNodes, trail);
     
-    // Calculate tangent vector for proper tube orientation
+    // Calculate tangent vector (simplified)
     vec3 pPrev = readPosByLogical(node - 1, head, valid, uNodes, trail);
     vec3 pNext = readPosByLogical(node + 1, head, valid, uNodes, trail);
-    vec3 tangent = normalize(pNext - pPrev);
     
-    // Create orthogonal basis for tube cross-section
-    vec3 side = normalize(cross(tangent, vec3(0.0, 1.0, 0.0)));
+    vec3 tangent;
+    if (valid < 2) {
+        tangent = vec3(1.0, 0.0, 0.0);
+    } else if (node <= 0) {
+        tangent = normalize(pNext - p);
+    } else if (node >= valid - 1) {
+        tangent = normalize(p - pPrev);
+    } else {
+        tangent = normalize(pNext - pPrev);
+    }
+    
+    // Calculate local coordinate system
+    vec3 viewDir = normalize(uCameraPos - p);
+    vec3 side = normalize(cross(tangent, viewDir));
+    
+    // Handle edge case where tangent and viewDir are parallel
     if (length(side) < 0.1) {
         side = normalize(cross(tangent, vec3(1.0, 0.0, 0.0)));
     }
     vec3 up = normalize(cross(side, tangent));
     
-    // Calculate tube radius with tapering
-    float progress = float(node) / float(max(float(valid - 1), 1.0));
-    float radius = uBaseWidth * (1.0 - progress * 0.5);
+    // Calculate tube radius
+    float radius = uBaseWidth;
     
     // Position vertex around tube circumference
-    float angle = (radial / 8.0) * 2.0 * 3.14159265359;
+    float angle = (radial / float(uSegments)) * 2.0 * 3.14159265359;
     vec3 offset = (side * cos(angle) + up * sin(angle)) * radius;
     vec3 pos = p + offset;
     
-    // Calculate proper normal
+    // Calculate normal (points outward from tube center)
     vec3 normal = normalize(offset);
     
     // Pass data to fragment shader

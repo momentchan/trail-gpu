@@ -168,8 +168,6 @@ export default function FlowFieldExample() {
   const geometry = useRibbonGeometry({
     geometryType: 'quad',
     geometryConfig: { nodes: 80, trails: 1000, width: 1.0 },
-    nodes: 80,
-    trails: 1000,
   });
 
   // Create materials
@@ -183,12 +181,6 @@ export default function FlowFieldExample() {
       trails: 1000, 
       color: '#555555' 
     },
-    nodeTex: trails.nodeTexture!,
-    trailTex: trails.trailTexture!,
-    baseWidth: 0.02,
-    nodes: 80,
-    trails: 1000,
-    color: '#555555',
   });
 
   // Update particles and trails each frame

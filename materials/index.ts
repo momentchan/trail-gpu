@@ -3,7 +3,7 @@ import { StandardMaterialProvider } from './StandardMaterialProvider';
 import { CustomShaderMaterialProvider } from './CustomShaderMaterialProvider';
 import { TubeMaterialProvider } from './TubeMaterialProvider';
 export { StandardMaterialProvider, CustomShaderMaterialProvider, TubeMaterialProvider };
-export type { MaterialProvider, StandardMaterialConfig, CustomShaderMaterialConfig, MaterialConfig } from './types';
+export type { MaterialProvider, StandardMaterialConfig, CustomShaderMaterialConfig, TubeMaterialConfig, MaterialConfig } from './types';
 
 // Simple material providers map
 export const materialProviders = {

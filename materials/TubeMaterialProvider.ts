@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import CustomShaderMaterial from "three-custom-shader-material/vanilla";
-import { MaterialProvider, StandardMaterialConfig } from './types';
+import { MaterialProvider, TubeMaterialConfig } from './types';
 import { SHADER_CONSTANTS } from '../shaders';
 import { TrailGPUError } from '../types';
 
 export const TubeMaterialProvider: MaterialProvider = {
   name: 'tube',
   
-  createMaterial(config: StandardMaterialConfig): THREE.Material {
-    const { nodeTex, trailTex, baseWidth, nodes, trails, color, materialProps = {} } = config;
+  createMaterial(config: TubeMaterialConfig): THREE.Material {
+    const { nodeTex, trailTex, baseWidth, nodes, trails, color, materialProps = {}, segments = 8 } = config;
     
     // Validate inputs
     if (!nodeTex || !trailTex) {
@@ -22,6 +22,7 @@ export const TubeMaterialProvider: MaterialProvider = {
       uBaseWidth: { value: baseWidth },
       uNodes: { value: nodes },
       uTrails: { value: trails },
+      uSegments: { value: segments },
       uCameraPos: { value: new THREE.Vector3() },
       uColor: { value: typeof color === 'string' ? new THREE.Color(color) : color },
       uTime: { value: 0 },
@@ -45,8 +46,8 @@ export const TubeMaterialProvider: MaterialProvider = {
     });
   },
   
-  createDepthMaterial(config: StandardMaterialConfig): THREE.Material {
-    const { nodeTex, trailTex, baseWidth, nodes, trails } = config;
+  createDepthMaterial(config: TubeMaterialConfig): THREE.Material {
+    const { nodeTex, trailTex, baseWidth, nodes, trails, segments = 8 } = config;
     
     const vertexShader = SHADER_CONSTANTS.TUBE_VERTEX;
 
@@ -57,6 +58,7 @@ export const TubeMaterialProvider: MaterialProvider = {
       uBaseWidth: { value: baseWidth },
       uNodes: { value: nodes },
       uTrails: { value: trails },
+      uSegments: { value: segments },
       uDebug: { value: 0 },
     };
 
@@ -76,6 +78,7 @@ export const TubeMaterialProvider: MaterialProvider = {
       uBaseWidth: 0.08,
       uNodes: 0,
       uTrails: 0,
+      uSegments: 8,
       uCameraPos: new THREE.Vector3(),
       uColor: new THREE.Color('#8ec5ff'),
       uTime: 0,

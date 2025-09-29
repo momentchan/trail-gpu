@@ -28,35 +28,33 @@ export function RibbonTubeExample() {
         shaderPack: DistanceShaderPack,
     });
 
-    // Create geometry
+    // Create geometry - back to tube
     const geometry = useRibbonGeometry({
         geometryType: 'tube',
         geometryConfig: {
             nodes: nodeNum,
             trails: trailNum,
             segments: 16,
+            capStart: false,
+            capEnd: false,
         },
-        nodes: nodeNum,
-        trails: trailNum,
     });
 
-    // Create materials
+    // Create materials - back to tube
     const materials = useRibbonMaterials({
         materialType: 'tube',
         materialConfig: { 
             nodeTex: trails.nodeTexture!, 
             trailTex: trails.trailTexture!, 
-            baseWidth: 0.06, 
+            baseWidth: 0.2, // Increased base width for visibility
             nodes: nodeNum, 
             trails: trailNum, 
-            color: '#ff6b6b' 
+            color: '#ff6b6b',
+            segments: 16, // Pass the segment count to the material
+            materialProps: {
+                side: THREE.DoubleSide,
+            },
         },
-        nodeTex: trails.nodeTexture!,
-        trailTex: trails.trailTexture!,
-        baseWidth: 0.06,
-        nodes: nodeNum,
-        trails: trailNum,
-        color: '#ff6b6b',
     });
 
     // Update particles each frame

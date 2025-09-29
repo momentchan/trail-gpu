@@ -157,8 +157,6 @@ export function RibbonQuadExample() {
     const geometry1 = useRibbonGeometry({
         geometryType: 'quad',
         geometryConfig: { nodes: nodeNum, trails: trailNum, width: 1.0 },
-        nodes: nodeNum,
-        trails: trailNum,
     });
 
     // Create materials for Example 1
@@ -172,20 +170,12 @@ export function RibbonQuadExample() {
             trails: trailNum, 
             color: '#8ec5ff' 
         },
-        nodeTex: trails.nodeTexture!,
-        trailTex: trails.trailTexture!,
-        baseWidth: 0.08,
-        nodes: nodeNum,
-        trails: trailNum,
-        color: '#8ec5ff',
     });
 
     // Create geometry for Example 2 (Explicit Quad)
     const geometry2 = useRibbonGeometry({
         geometryType: 'quad',
         geometryConfig: { nodes: nodeNum, trails: trailNum, width: 1.0 },
-        nodes: nodeNum,
-        trails: trailNum,
     });
 
     // Create materials for Example 2
@@ -199,20 +189,12 @@ export function RibbonQuadExample() {
             trails: trailNum, 
             color: '#ff6b6b' 
         },
-        nodeTex: trails.nodeTexture!,
-        trailTex: trails.trailTexture!,
-        baseWidth: 0.06,
-        nodes: nodeNum,
-        trails: trailNum,
-        color: '#ff6b6b',
     });
 
     // Create geometry for Example 3 (Custom Material Properties)
     const geometry3 = useRibbonGeometry({
         geometryType: 'quad',
         geometryConfig: { nodes: nodeNum, trails: trailNum, width: 1.0 },
-        nodes: nodeNum,
-        trails: trailNum,
     });
 
     // Create materials for Example 3
@@ -233,27 +215,12 @@ export function RibbonQuadExample() {
                 metalness: 0.8,
             }
         },
-        nodeTex: trails.nodeTexture!,
-        trailTex: trails.trailTexture!,
-        baseWidth: 0.04,
-        nodes: nodeNum,
-        trails: trailNum,
-        color: '#6bff6b',
-        materialProps: {
-            wireframe: true,
-            transparent: true,
-            opacity: 0.8,
-            roughness: 0.2,
-            metalness: 0.8,
-        },
     });
 
     // Create geometry for Example 4 (Custom Shader)
     const geometry4 = useRibbonGeometry({
         geometryType: 'quad',
         geometryConfig: { nodes: nodeNum, trails: trailNum, width: 1.0 },
-        nodes: nodeNum,
-        trails: trailNum,
     });
 
     // Create materials for Example 4 (Custom Shader)
@@ -274,12 +241,6 @@ export function RibbonQuadExample() {
             trails: trailNum,
             color: '#ffffff',
         },
-        nodeTex: trails.nodeTexture!,
-        trailTex: trails.trailTexture!,
-        baseWidth: 0.1,
-        nodes: nodeNum,
-        trails: trailNum,
-        color: '#ffffff',
     });
 
     // Update particles each frame
