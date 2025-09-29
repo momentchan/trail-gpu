@@ -48,6 +48,10 @@ export class TrailAdvancePass {
         this.u.uMinStep.value = v;
     }
 
+    setStepSec(v: number) {
+        this.u.uStepSec.value = v;
+    }
+
     run(io: {
         inputTex: THREE.Texture;
         nodePrev: THREE.Texture;

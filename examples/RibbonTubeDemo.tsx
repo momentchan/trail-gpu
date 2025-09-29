@@ -51,6 +51,9 @@ export function RibbonTubeDemo() {
             trails: trailNum, 
             color: '#ff6b6b',
             segments: 16, // Pass the segment count to the material
+            materialProps: {
+                side: THREE.DoubleSide,
+            },
         },
     });
 

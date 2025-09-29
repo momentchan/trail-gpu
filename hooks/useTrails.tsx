@@ -10,6 +10,8 @@ export type UseTrailSystemConfig = {
     trailsNum: number;
     fixedLength?: boolean;
     updateDistanceMin?: number; // 便捷：給 distance 模式用
+    updateTimeStep?: number;    // 便捷：給 time 模式用
+    advanceMode?: 'distance' | 'time';
     shaderPack: ShaderPack;
 };
 
@@ -18,7 +20,7 @@ export function useTrails(cfg: UseTrailSystemConfig) {
     const computeRef = useRef<TrailCompute | null>(null);
     const poolRef = useRef<RenderTargetPool | null>(null);
 
-    const { nodesPerTrail, trailsNum, fixedLength, updateDistanceMin, shaderPack } = cfg;
+    const { nodesPerTrail, trailsNum, fixedLength, updateDistanceMin, updateTimeStep, advanceMode, shaderPack } = cfg;
 
     useEffect(() => {
         poolRef.current = new RenderTargetPool();
@@ -29,8 +31,9 @@ export function useTrails(cfg: UseTrailSystemConfig) {
                 trailsNum: cfg.trailsNum,
                 fixedLength: !cfg.fixedLength,
                 advance: {
-                    mode: 'distance',
-                    distance: { minStep: cfg.updateDistanceMin ?? 0.05 }
+                    mode: advanceMode ?? 'distance',
+                    distance: { minStep: cfg.updateDistanceMin ?? 0.05 },
+                    time: { stepSec: cfg.updateTimeStep ?? 0.05 }
                 },
             },
             cfg.shaderPack,
@@ -55,6 +58,10 @@ export function useTrails(cfg: UseTrailSystemConfig) {
     useEffect(() => {
         computeRef.current?.setUpdateDistanceMin(updateDistanceMin ?? 0.05);
     }, [updateDistanceMin]);
+
+    useEffect(() => {
+        computeRef.current?.setUpdateTimeStep(updateTimeStep ?? 0.05);
+    }, [updateTimeStep]);
 
 
     function update(timeSec: number, deltaTime: number, inputTexture: THREE.Texture) {

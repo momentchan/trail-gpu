@@ -3,6 +3,8 @@
 
 import calcInputHeadFrag from './CalcInputHead.glsl?raw';
 import calcInputWriteNodeFrag from './CalcInputWriteNode.glsl?raw';
+import calcInputAdvanceFrag from './CalcInputAdvance.glsl?raw';
+import calcInputAdvanceTimeFrag from './CalcInputAdvanceTime.glsl?raw';
 import ribbonVertexShader from './RibbonVertex.glsl?raw';
 import ribbonFragmentShader from './RibbonFragment.glsl?raw';
 import tubeVertexShader from './TubeVertex.glsl?raw';
@@ -11,6 +13,8 @@ import tubeFragmentShader from './TubeFragment.glsl?raw';
 export {
   calcInputHeadFrag,
   calcInputWriteNodeFrag,
+  calcInputAdvanceFrag,
+  calcInputAdvanceTimeFrag,
   ribbonVertexShader,
   ribbonFragmentShader,
   tubeVertexShader,

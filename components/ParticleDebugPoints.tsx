@@ -83,11 +83,7 @@ export function ParticleDebugPoints({
           vec4 mvPosition = modelViewMatrix * vec4(worldPos, 1.0);
           gl_Position = projectionMatrix * mvPosition;
           
-          // Set point size for non-debug particles
-          if (aInstanceId >= 3.0) {
-            float pointSize = uSize * (300.0 / -mvPosition.z);
-            gl_PointSize = pointSize;
-          }
+          gl_PointSize = uSize * (300.0 / -mvPosition.z);
         }
       `,
       fragmentShader: `

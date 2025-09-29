@@ -17,7 +17,7 @@ varying vec2 vUv;                    // UV coordinates
 
 void main() {
     // Bright color for visibility
-    vec3 color = vec3(1.0, 0.0, 1.0); // Bright magenta
+    vec3 color = vec3(1.0); 
     
     // Add some variation based on trail and segment
     float variation = sin(vTrail * 0.5 + vSeg * 0.1 + uTime * 2.0) * 0.3 + 0.7;

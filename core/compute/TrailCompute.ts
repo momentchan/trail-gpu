@@ -149,6 +149,8 @@ export class TrailCompute {
 
     setUpdateDistanceMin(v: number) { this.advancePass.setMinStep(v); }
     
+    setUpdateTimeStep(v: number) { this.advancePass.setStepSec(v); }
+    
     setFixedLength(on: boolean) { this.headPass.setFixedLength(on); }
 
     dispose() {

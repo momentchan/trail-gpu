@@ -65,6 +65,8 @@ export {
 export {
   calcInputHeadFrag,
   calcInputWriteNodeFrag,
+  calcInputAdvanceFrag,
+  calcInputAdvanceTimeFrag,
   ribbonVertexShader,
   ribbonFragmentShader,
   tubeVertexShader,
@@ -72,9 +74,14 @@ export {
   SHADER_CONSTANTS,
 } from './shaders';
 
+// Shader Packs
+export { DistanceShaderPack, makeDistanceShaderPack } from './shaders/packs/distance';
+export { TimeShaderPack, makeTimeShaderPack } from './shaders/packs/time';
+
 // Examples
 export { default as ParticleFlowField } from './examples/ParticleFlowField';
 export { ParticleOrbital } from './examples/ParticleOrbital';
 export { ParticleBasic } from './examples/ParticleBasic';
+export { ParticleTimeTrail } from './examples/ParticleTimeTrail';
 export { RibbonQuadDemo } from './examples/RibbonQuadDemo';
 export { RibbonTubeDemo } from './examples/RibbonTubeDemo';
