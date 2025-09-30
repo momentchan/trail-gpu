@@ -8,8 +8,8 @@ export interface MaterialProvider {
   updateUniforms(material: THREE.Material, uniforms: any): void;
 }
 
-// Configuration for standard material
-export interface StandardMaterialConfig {
+// Configuration for material (handles both standard and custom shaders)
+export interface MaterialConfig {
   nodeTex: THREE.Texture;
   trailTex: THREE.Texture;
   baseWidth: number;
@@ -17,22 +17,13 @@ export interface StandardMaterialConfig {
   trails: number;
   color: string | THREE.Color;
   materialProps?: Partial<THREE.MeshStandardMaterialParameters>;
-  customVertexShader?: string;
-  customFragmentShader?: string;
-  customUniforms?: { [key: string]: { value: any } };
-}
-
-// Configuration for custom shader material
-export interface CustomShaderMaterialConfig extends StandardMaterialConfig {
-  vertexShader: string;
-  fragmentShader: string;
-  uniforms: { [key: string]: { value: any } };
+  // Custom shader properties (optional - uses defaults if not provided)
+  vertexShader?: string;
+  fragmentShader?: string;
+  uniforms?: { [key: string]: { value: any } };
 }
 
 // Configuration for tube material
-export interface TubeMaterialConfig extends StandardMaterialConfig {
+export interface TubeMaterialConfig extends MaterialConfig {
   segments?: number;
 }
-
-// Union type for all material configs
-export type MaterialConfig = StandardMaterialConfig | CustomShaderMaterialConfig | TubeMaterialConfig;

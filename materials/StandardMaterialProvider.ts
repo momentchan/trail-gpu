@@ -1,14 +1,14 @@
 import * as THREE from 'three';
 import CustomShaderMaterial from "three-custom-shader-material/vanilla";
-import { MaterialProvider, StandardMaterialConfig } from './types';
+import { MaterialProvider, MaterialConfig } from './types';
 import { SHADER_CONSTANTS } from '../shaders';
 import { TrailGPUError } from '../types';
 
 export const StandardMaterialProvider: MaterialProvider = {
   name: 'standard',
   
-  createMaterial(config: StandardMaterialConfig): THREE.Material {
-    const { nodeTex, trailTex, baseWidth, nodes, trails, color, materialProps = {}, customVertexShader, customFragmentShader, customUniforms = {} } = config;
+  createMaterial(config: MaterialConfig): THREE.Material {
+    const { nodeTex, trailTex, baseWidth, nodes, trails, color, materialProps = {}, vertexShader: customVertexShader, fragmentShader: customFragmentShader, uniforms: customUniforms = {} } = config;
     
     // Validate inputs
     if (!nodeTex || !trailTex) {
@@ -51,8 +51,8 @@ export const StandardMaterialProvider: MaterialProvider = {
     });
   },
   
-  createDepthMaterial(config: StandardMaterialConfig): THREE.Material {
-    const { nodeTex, trailTex, baseWidth, nodes, trails, customVertexShader } = config;
+  createDepthMaterial(config: MaterialConfig): THREE.Material {
+    const { nodeTex, trailTex, baseWidth, nodes, trails, vertexShader: customVertexShader } = config;
     
     const vertexShader = customVertexShader || SHADER_CONSTANTS.RIBBON_VERTEX;
 

@@ -214,7 +214,7 @@ export function RibbonQuadDemo() {
 
     // Create materials for Example 4 (Custom Shader)
     const materials4 = useRibbonMaterials({
-        materialType: 'custom-shader',
+        materialType: 'standard',
         materialConfig: {
             vertexShader: customVertexShader,
             fragmentShader: customFragmentShader,

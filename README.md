@@ -128,7 +128,7 @@ Creates materials for ribbon rendering.
 
 ```tsx
 const materials = useRibbonMaterials({
-  materialType: 'standard' | 'custom-shader' | 'tube',
+  materialType: 'standard' | 'tube',
   materialConfig: MaterialConfig,
 });
 ```
@@ -222,7 +222,7 @@ const materials = useRibbonMaterials({
 
 ```tsx
 const materials = useRibbonMaterials({
-  materialType: 'custom-shader',
+  materialType: 'standard',
   materialConfig: {
     vertexShader: string,      // Custom vertex shader
     fragmentShader: string,    // Custom fragment shader

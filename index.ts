@@ -9,8 +9,8 @@ export { geometryProviders, QuadGeometryProvider, TubeGeometryProvider } from '.
 export type { GeometryProvider, QuadGeometryConfig, TubeGeometryConfig, GeometryType } from './geometry';
 
 // Material Providers
-export { materialProviders, StandardMaterialProvider, CustomShaderMaterialProvider, TubeMaterialProvider } from './materials';
-export type { MaterialProvider, StandardMaterialConfig, CustomShaderMaterialConfig, TubeMaterialConfig, MaterialType } from './materials';
+export { materialProviders, StandardMaterialProvider, TubeMaterialProvider } from './materials';
+export type { MaterialProvider, MaterialConfig, TubeMaterialConfig, MaterialType } from './materials';
 
 // Hooks
 export { useTrails } from './hooks/useTrails';
