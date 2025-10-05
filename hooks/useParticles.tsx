@@ -9,8 +9,6 @@ export type UseParticlesConfig = {
     count: number;
     shaderConfig?: ParticleShaderConfig;
     config?: Partial<ParticleConfig>;
-    initialPositions?: Float32Array;
-    initialVelocities?: Float32Array;
 };
 
 export function useParticles(cfg: UseParticlesConfig) {
@@ -18,7 +16,7 @@ export function useParticles(cfg: UseParticlesConfig) {
     const computeRef = useRef<ParticleCompute | null>(null);
     const poolRef = useRef<RenderTargetPool | null>(null);
 
-    const { count, shaderConfig, config = {}, initialPositions, initialVelocities } = cfg;
+    const { count, shaderConfig, config = {} } = cfg;
 
     useEffect(() => {
         poolRef.current = new RenderTargetPool();
@@ -30,8 +28,6 @@ export function useParticles(cfg: UseParticlesConfig) {
             maxSpeed: 10.0,
             integrationMethod: 'euler',
             ...config,
-            initialPositions,
-            initialVelocities,
         };
 
         // Use default shader config if none provided
@@ -50,7 +46,7 @@ export function useParticles(cfg: UseParticlesConfig) {
             computeRef.current = null;
             poolRef.current = null;
         };
-    }, [gl, count, shaderConfig, config, initialPositions, initialVelocities]);
+    }, [gl, count, shaderConfig, config]);
 
     function update(timeSec: number, deltaTime: number, customUniforms?: CustomUniforms) {
         const sys = computeRef.current;
