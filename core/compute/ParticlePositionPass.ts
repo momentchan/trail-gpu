@@ -4,6 +4,7 @@ import { SHADER_CONSTANTS } from '../../shaders';
 import { ParticleConfig } from '../../types';
 import { Blitter } from '../utils/Blit';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ParticlePositionPassConfig {
     // Position pass typically doesn't need additional config
     // It just integrates position using velocity

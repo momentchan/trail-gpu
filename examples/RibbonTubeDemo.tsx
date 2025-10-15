@@ -43,14 +43,14 @@ export function RibbonTubeDemo() {
     // Create materials - back to tube
     const materials = useRibbonMaterials({
         materialType: 'tube',
-        materialConfig: { 
-            nodeTex: trails.nodeTexture!, 
-            trailTex: trails.trailTexture!, 
+        materialConfig: {
+            nodeTex: trails.nodeTexture!,
+            trailTex: trails.trailTexture!,
             baseWidth: 0.2, // Increased base width for visibility
-            nodes: nodeNum, 
-            trails: trailNum, 
+            nodes: nodeNum,
+            trails: trailNum,
             color: '#ff6b6b',
-            segments: 16, // Pass the segment count to the material
+            // segments: 16, // Pass the segment count to the material
             materialProps: {
                 side: THREE.DoubleSide,
             },
