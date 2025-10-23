@@ -1,6 +1,6 @@
 // Material providers
-import { StandardMaterialProvider } from './StandardMaterialProvider';
-import { TubeMaterialProvider } from './TubeMaterialProvider';
+import { StandardMaterialProvider } from './standardMaterialProvider';
+import { TubeMaterialProvider } from './tubeMaterialProvider';
 export { StandardMaterialProvider, TubeMaterialProvider };
 export type { MaterialProvider, MaterialConfig, TubeMaterialConfig } from './types';
 
