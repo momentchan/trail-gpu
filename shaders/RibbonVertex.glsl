@@ -57,42 +57,53 @@ int logicalToPhysical(int i, int head, int valid, int nodes) {
  * Handles edge cases for beginning and end of trail
  */
 vec3 readPosByLogical(int i, int head, int valid, int nodes, int trail) {
-    if (i < 0) i = 0;
-    if (i >= valid) {
+    // Clamp input index to valid range
+    int clampedIndex = clamp(i, 0, max(0, valid - 1));
+
+    // Always initialize k to a safe value
+    int k = 0;
+
+    if(valid <= 0) {
+        // If no valid nodes, return head position as fallback
+        return readNode(max(0, head), trail).xyz;
+    }
+
+    if(clampedIndex >= valid) {
         return readNode(head, trail).xyz;
     }
-    int k = logicalToPhysical(i, head, valid, nodes);
+
+    k = logicalToPhysical(clampedIndex, head, valid, nodes);
     return readNode(k, trail).xyz;
 }
 
 void main() {
     int trail = int(aTrail);
     int node = int(aSeg);
-    
+
     // Read trail state
     ivec2 hv = readHeadValid(trail);
     int head = hv.x;
     int valid = hv.y;
-    
+
     // Get current and neighboring positions
     vec3 p = readPosByLogical(node, head, valid, uNodes, trail);
     vec3 pPrev = readPosByLogical(node - 1, head, valid, uNodes, trail);
     vec3 pNext = readPosByLogical(node + 1, head, valid, uNodes, trail);
-    
+
     // Calculate tangent vector
     bool shortStrip = (valid < 2);
     vec3 tangent;
-    
-    if (shortStrip) {
+
+    if(shortStrip) {
         tangent = vec3(1.0, 0.0, 0.0);  // Default tangent for short strips
-    } else if (node <= 0) {
+    } else if(node <= 0) {
         tangent = normalize(pNext - p);  // Forward difference at start
-    } else if (node >= valid - 1) {
+    } else if(node >= valid - 1) {
         tangent = normalize(p - pPrev);  // Backward difference at end
     } else {
         tangent = normalize(pNext - pPrev);  // Central difference in middle
     }
-    
+
     // Calculate billboard orientation
     vec3 viewDir = normalize(uCameraPos - p);
     vec3 side = normalize(cross(tangent, viewDir));
@@ -102,7 +113,7 @@ void main() {
     // Calculate final position
     float width = uBaseWidth;
     vec3 pos = p + side * width * aSide;
-    
+
     // Pass data to fragment shader
     vSeg = float(node);
     vTrail = float(trail);
@@ -110,13 +121,12 @@ void main() {
     vWorldPos = pos;
     vUv = uv; // Pass UV coordinates
 
-
     mat4 invModel = inverse(modelMatrix);
     mat3 invModel3 = mat3(invModel);
 
-    vec3 posOS    = (invModel * vec4(pos, 1.0)).xyz;
+    vec3 posOS = (invModel * vec4(pos, 1.0)).xyz;
     vec3 normalOS = normalize(transpose(invModel3) * normal);
 
     csm_Position = posOS;
-    csm_Normal   = normalOS;
+    csm_Normal = normalOS;
 }
