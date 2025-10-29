@@ -60,9 +60,6 @@ vec3 readPosByLogical(int i, int head, int valid, int nodes, int trail) {
     // Clamp input index to valid range
     int clampedIndex = clamp(i, 0, max(0, valid - 1));
 
-    // Always initialize k to a safe value
-    int k = 0;
-
     if(valid <= 0) {
         // If no valid nodes, return head position as fallback
         return readNode(max(0, head), trail).xyz;
@@ -72,7 +69,8 @@ vec3 readPosByLogical(int i, int head, int valid, int nodes, int trail) {
         return readNode(head, trail).xyz;
     }
 
-    k = logicalToPhysical(clampedIndex, head, valid, nodes);
+    // Calculate physical index and return position
+    int k = logicalToPhysical(clampedIndex, head, valid, nodes);
     return readNode(k, trail).xyz;
 }
 
